@@ -1,10 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+// frontend/src/main.tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx"; // Import App directly
+import "./index.css";
+import { AuthProvider } from "./contexts/AuthContext.tsx";
+import { BrowserRouter } from "react-router-dom"; // Import BrowserRouter
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);

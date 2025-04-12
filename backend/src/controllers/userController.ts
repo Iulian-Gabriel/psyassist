@@ -33,14 +33,8 @@ export const getUserProfile = async (
       return; // Stop execution if IDs don't match
     }
 
-    if (!req.userId) {
-      console.error("Error: userId missing from request after authentication.");
-      res.status(401).json({ message: "Authentication error" });
-      return;
-    }
-
     // Fetch the user using the ID from the token payload
-    const user = await userService.findById(req.userId);
+    const user = await userService.findById(authenticatedUserId);
 
     if (!user) {
       // This could happen if the user was deleted after the token was issued

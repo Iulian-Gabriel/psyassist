@@ -15,33 +15,38 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body as LoginRequest;
 
   try {
-    // Find user
+    // Find user with roles
     const user = await userService.findByEmail(email);
     if (!user) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
 
-    // Verify password against password_hash from schema
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
 
-    // Create tokens using user_id from schema
+    // Get user with roles
+    const userWithRoles = await userService.findByIdWithRoles(
+      user.user_id.toString()
+    );
+    const roles = Array.isArray(userWithRoles?.roles)
+      ? userWithRoles.roles.map((role) => role.role_name)
+      : [];
+
+    // Generate tokens
     const accessToken = generateAccessToken(user.user_id.toString());
     const refreshToken = generateRefreshToken(user.user_id.toString());
 
-    // Send refresh token as HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: config.nodeEnv === "production", // Use secure cookies in production, production => secure = true
-      sameSite: "strict", // samesite means the cookie will only be sent in a first-party context (i.e., if the user is navigating to the site from the same site)
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+      secure: config.nodeEnv === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Send access token in response body with correct user fields
     res.json({
       accessToken,
       user: {
@@ -49,6 +54,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
+        roles: roles, // Include roles in response
       },
     });
   } catch (error) {
@@ -158,6 +164,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const accessToken = generateAccessToken(newUser.user_id.toString());
     const refreshToken = generateRefreshToken(newUser.user_id.toString());
 
+    // Get user with roles after creation
+    const userWithRoles = await userService.findByIdWithRoles(
+      newUser.user_id.toString()
+    );
+    const roles = Array.isArray(userWithRoles?.roles)
+      ? userWithRoles.roles.map((role) => role.role_name)
+      : [];
+
     // Send refresh token as HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -166,13 +180,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Don't return password_hash
-    const { password_hash, ...userWithoutPassword } = newUser; // this destructuring syntax allows us to extract the password_hash property and create a new object without it
-
-    // Return user data and access token
+    // Return user data with roles and access token
     res.status(201).json({
       message: "User registered successfully",
-      user: userWithoutPassword,
+      user: {
+        id: newUser.user_id,
+        email: newUser.email,
+        firstName: newUser.first_name,
+        lastName: newUser.last_name,
+        roles: roles,
+      },
       accessToken,
     });
   } catch (error) {
