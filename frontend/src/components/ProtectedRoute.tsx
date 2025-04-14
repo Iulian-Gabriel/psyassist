@@ -3,13 +3,14 @@ import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation(); // Get current location
+const ProtectedRoute: React.FC<{ requiresAdmin?: boolean }> = ({
+  requiresAdmin = false,
+}) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
+  const isAdmin = user?.roles?.includes("admin");
 
   if (isLoading) {
-    // Show a loading indicator while checking auth status
-    // Replace with a proper spinner component if desired
     return (
       <div className="flex justify-center items-center h-screen">
         Loading...
@@ -18,12 +19,20 @@ const ProtectedRoute: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    // Redirect them to the /auth page, saving the current location they were
-    // trying to go to in state. This allows redirecting back after login.
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Render the child route component (e.g., Dashboard, ProfilePage) if authenticated
+  // Check for admin-only routes
+  if (requiresAdmin && !isAdmin) {
+    return (
+      <Navigate
+        to="/dashboard"
+        state={{ message: "Access denied: Admin permissions required" }}
+        replace
+      />
+    );
+  }
+
   return <Outlet />;
 };
 

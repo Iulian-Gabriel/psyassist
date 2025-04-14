@@ -7,6 +7,8 @@ import { config } from "./config/env"; // Your simplified env config
 // Import routes
 import authRoutes from "./routes/api/authRoutes";
 import userRoutes from "./routes/api/userRoutes";
+import employeeRoutes from "./routes/api/employeeRoutes";
+import adminRoutes from "./routes/api/adminRoutes";
 // Import other routes as needed
 
 const app = express();
@@ -33,6 +35,8 @@ app.use(express.urlencoded({ extended: true })); // Parses URL-encoded bodies if
 // --- API Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/employees", employeeRoutes);
+app.use("/api/admin", adminRoutes);
 // ... use other routes
 
 // --- Error Handling Middleware ---

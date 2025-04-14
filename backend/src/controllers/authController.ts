@@ -63,29 +63,36 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// Update the refreshToken function to include more detailed logging
+
 export const refreshToken = (req: Request, res: Response): void => {
   const refreshToken = req.cookies.refreshToken;
 
+  console.log("Refresh token request received");
+
   if (!refreshToken) {
+    console.log("No refresh token in cookies");
     res.status(401).json({ message: "Refresh token required" });
     return;
   }
 
   try {
+    console.log("Verifying refresh token...");
     // Verify refresh token
     const payload = jwt.verify(
       refreshToken,
       config.refreshTokenSecret
     ) as unknown as {
-      // unknown means we don't know the type of the payload yet
-      userId: string; // userId is the property we expect in the payload
+      userId: string;
     };
 
+    console.log(`Generating new access token for user ${payload.userId}`);
     // Generate new access token
     const accessToken = generateAccessToken(payload.userId);
 
     res.json({ accessToken });
   } catch (error) {
+    console.error("Refresh token error:", error);
     if (error instanceof jwt.TokenExpiredError) {
       res.status(403).json({ message: "Refresh token expired" });
     } else {
@@ -107,11 +114,32 @@ export const logout = (req: Request, res: Response): void => {
 
 // Helper functions
 function generateAccessToken(userId: string): string {
-  return jwt.sign({ userId }, config.accessTokenSecret, { expiresIn: "15m" });
+  const expiresIn = `${config.accessTokenExpiryMinutes}m`;
+  console.log(`Generating access token with expiry: ${expiresIn}`);
+
+  // Fix the token signing by ensuring the secret is valid
+  if (!config.accessTokenSecret) {
+    throw new Error("Access token secret is not configured");
+  }
+
+  // Fix the type issue by properly typing the options
+  return jwt.sign({ userId }, config.accessTokenSecret, {
+    expiresIn,
+  } as jwt.SignOptions);
 }
 
 function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, config.refreshTokenSecret, { expiresIn: "7d" });
+  // Also fix the refresh token generation for consistency
+  if (!config.refreshTokenSecret) {
+    throw new Error("Refresh token secret is not configured");
+  }
+
+  const expiresIn = `${config.refreshTokenExpiryMinutes}m`;
+
+  // Fix the type issue by properly typing the options
+  return jwt.sign({ userId }, config.refreshTokenSecret, {
+    expiresIn,
+  } as jwt.SignOptions);
 }
 
 export const register = async (req: Request, res: Response): Promise<void> => {

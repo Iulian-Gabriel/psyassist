@@ -35,8 +35,7 @@ interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
-// Implementation of a token refresh queue
-let refreshPromise: Promise<string> | null = null;
+// Replace the existing interceptor.response section with this improved version
 
 api.interceptors.response.use(
   (response) => response,
@@ -46,43 +45,47 @@ api.interceptors.response.use(
     }
 
     const originalRequest = error.config as RetryAxiosRequestConfig;
-    const isLoginOrRegister =
-      originalRequest?.url === "/auth/login" ||
-      originalRequest?.url === "/auth/register";
 
+    // Check if we got a 401 Unauthorized error
     if (
       error.response?.status === 401 &&
+      !originalRequest._retry &&
       originalRequest?.url !== "/auth/refresh-token" &&
-      !originalRequest?._retry &&
-      !isLoginOrRegister
+      originalRequest?.url !== "/auth/login" &&
+      originalRequest?.url !== "/auth/register"
     ) {
       originalRequest._retry = true;
 
       try {
-        // Single refresh promise for multiple concurrent requests
-        if (!refreshPromise) {
-          refreshPromise = api
-            .post<{ accessToken: string }>("/auth/refresh-token")
-            .then((res) => res.data.accessToken)
-            .finally(() => {
-              refreshPromise = null;
-            });
+        console.log("Token expired, attempting refresh...");
+        const response = await axios.post(
+          `${API_URL}/auth/refresh-token`,
+          {},
+          {
+            withCredentials: true,
+          }
+        );
+
+        const newToken = response.data.accessToken;
+
+        if (newToken) {
+          // Update token in localStorage
+          localStorage.setItem("accessToken", newToken);
+
+          // Update Authorization header
+          api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+
+          // Retry the original request with the new token
+          return axios(originalRequest);
         }
-
-        // All requests wait for the same refresh
-        const newToken = await refreshPromise;
-
-        // Update auth header and storage
-        localStorage.setItem("accessToken", newToken);
-        api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-
-        // Retry with new token
-        return api(originalRequest);
       } catch (refreshError) {
-        // Handle refresh failure
+        console.error("Token refresh failed:", refreshError);
+        // Clear authentication data
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
+
+        // Redirect to login
         window.location.href = "/auth";
         return Promise.reject(refreshError);
       }

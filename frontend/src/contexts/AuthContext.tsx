@@ -36,21 +36,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true); // Start loading
   const navigate = useNavigate(); // Use navigate for redirects
 
+  // Optional: Add a function to check token expiration
+  const isTokenExpired = useCallback((token: string): boolean => {
+    if (!token) return true;
+
+    try {
+      // Extract the payload from JWT token
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      // Check if token has expired
+      return payload.exp * 1000 < Date.now();
+    } catch (e) {
+      console.error("Error checking token expiration:", e);
+      return true;
+    }
+  }, []);
+
   // Check local storage on initial load
   useEffect(() => {
     try {
       const storedToken = localStorage.getItem("accessToken");
       const storedUserJson = localStorage.getItem("user");
+
       if (storedToken && storedUserJson) {
         const storedUser = JSON.parse(storedUserJson) as User;
-        // Basic validation of stored user object
-        if (storedUser && storedUser.id && storedUser.email) {
+
+        // Check if token is expired
+        if (isTokenExpired(storedToken)) {
+          console.log("Stored token is expired, attempting to refresh...");
+          // Let the API interceptor handle refresh on next request
+          // Just clear the current token so we start with a clean state
+          localStorage.removeItem("accessToken");
+        } else {
+          // Token is valid, use it
           setAccessToken(storedToken);
           setUser(storedUser);
-        } else {
-          // Clear invalid stored data
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("user");
         }
       }
     } catch (error) {
@@ -58,9 +77,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
     } finally {
-      setIsLoading(false); // Finished loading initial state
+      setIsLoading(false);
     }
-  }, []); // Run only once on mount
+  }, [isTokenExpired]);
+
+  // You can optionally use this in your component for debugging
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      const checkTokenInterval = setInterval(() => {
+        const token = localStorage.getItem("accessToken");
+        if (token && isTokenExpired(token)) {
+          console.log(
+            "Token has expired, waiting for next API call to refresh"
+          );
+        }
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(checkTokenInterval);
+    }
+  }, [isTokenExpired]);
 
   const handleLogin = useCallback(
     async (credentials: LoginCredentials) => {

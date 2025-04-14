@@ -12,6 +12,8 @@ interface Config {
   refreshTokenSecret: string;
   nodeEnv: string;
   frontendUrl: string; // Single URL for the frontend
+  accessTokenExpiryMinutes: number; // Add this missing property
+  refreshTokenExpiryMinutes: number; // Add this for consistency
 }
 
 // The configuration object that will be exported
@@ -23,6 +25,15 @@ export const config: Config = {
   // Read the single FRONTEND_URL environment variable
   // Provide a default fallback (adjust port if your frontend runs elsewhere, e.g., 5173)
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  // Parse the expiry minutes from env or use defaults
+  accessTokenExpiryMinutes: parseInt(
+    process.env.ACCESS_TOKEN_EXPIRE_MINUTES || "30",
+    10
+  ),
+  refreshTokenExpiryMinutes: parseInt(
+    process.env.REFRESH_TOKEN_EXPIRE_MINUTES || "60",
+    10
+  ),
 };
 
 // Validate required environment variables

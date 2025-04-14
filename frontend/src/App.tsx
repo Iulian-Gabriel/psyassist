@@ -6,10 +6,27 @@ import ProfilePage from "./pages/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import { Button } from "./components/ui/button"; // For logout button in example
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
+// Add these imports after your existing imports
+import AdminUsersList from "./pages/admin/AdminUsersList";
+import EmployeesList from "./pages/admin/EmployeesList";
+import ServicesList from "./pages/admin/ServicesList";
+import AddEmployeeForm from "./pages/admin/AddEmployeeForm";
+
+// Add these imports at the top
+import EditUserForm from "./components/forms/EditUserForm";
+import EditEmployeeForm from "./components/forms/EditEmployeeForm";
+import EditPatientForm from "./components/forms/EditPatientForm";
+
+// Add this import at the top of your file with the other admin page imports
+import PatientsList from "./pages/admin/PatientsList";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth(); // Add user to destructuring
+  const isAdmin = user?.roles?.includes("admin"); // Check if user has admin role
+
   return (
     <div>
       <nav className="bg-gray-100 dark:bg-gray-800 p-4 shadow">
@@ -26,10 +43,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <Link to="/dashboard" className="mr-4 hover:text-blue-600">
                   Dashboard
                 </Link>
+                {/* Add conditional admin link here */}
+                {isAdmin && (
+                  <Link to="/admin" className="mr-4 hover:text-blue-600">
+                    Admin
+                  </Link>
+                )}
                 <Link to="/profile" className="mr-4 hover:text-blue-600">
                   Profile
                 </Link>
-                {/* Add other nav links here */}
                 <Button onClick={logout} variant="outline" size="sm">
                   Logout
                 </Button>
@@ -52,6 +74,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin");
+  const isDoctor = user?.roles?.includes("doctor");
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
@@ -65,7 +90,37 @@ const Dashboard = () => {
         )}
         !
       </p>
-      {/* Add dashboard content here */}
+
+      {isAdmin && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-3">Admin Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link to="/admin" className="btn btn-primary">
+              Admin Dashboard
+            </Link>
+            <Link to="/admin/users" className="btn btn-secondary">
+              Manage Users
+            </Link>
+            <Link to="/admin/employees" className="btn btn-secondary">
+              Manage Staff
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {isDoctor && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-3">Doctor Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link to="/services" className="btn btn-primary">
+              My Services
+            </Link>
+            <Link to="/patients" className="btn btn-secondary">
+              My Patients
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -83,8 +138,8 @@ const PublicHomePage = () => (
 
 // App component remains largely the same internally
 function App() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation(); // useLocation is fine here as App is inside BrowserRouter (in main.tsx)
+  const { isAuthenticated, isLoading, user } = useAuth(); // Add user to the destructured values
+  const location = useLocation();
 
   // Display loading indicator while auth status is being determined
   if (isLoading) {
@@ -96,19 +151,28 @@ function App() {
   }
 
   // Logic to handle redirect after login if 'from' state exists
-  // 'from' is set by ProtectedRoute when redirecting to /auth
+  // with role-based permission check
   const from = location.state?.from?.pathname || "/dashboard";
+
+  // Check if the user has permission for the requested route
+  const isAdmin = user?.roles?.includes("admin");
+  const hasRoutePermission = !from.startsWith("/admin") || isAdmin;
+
+  // If no permission, default to dashboard
+  const redirectTo = hasRoutePermission ? from : "/dashboard";
 
   return (
     <Layout>
-      {" "}
-      {/* Wrap all routes in a common layout */}
       <Routes>
         {/* Public Routes */}
         <Route
           path="/auth"
           element={
-            !isAuthenticated ? <AuthPage /> : <Navigate to={from} replace /> // Redirect logged-in users away from /auth
+            !isAuthenticated ? (
+              <AuthPage />
+            ) : (
+              <Navigate to={redirectTo} replace />
+            )
           }
         />
         <Route
@@ -124,13 +188,28 @@ function App() {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          {" "}
-          {/* Outlet renders nested routes if authenticated */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<ProfilePage />} />
-          {/* Add other protected routes here */}
-          {/* e.g., <Route path="/patients" element={<PatientListPage />} /> */}
-          {/* e.g., <Route path="/appointments" element={<AppointmentPage />} /> */}
+          {/* Other regular protected routes */}
+        </Route>
+
+        {/* Admin routes with requiresAdmin prop */}
+        <Route element={<ProtectedRoute requiresAdmin={true} />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsersList />} />
+          <Route path="/admin/users/:id/edit" element={<EditUserForm />} />
+          <Route path="/admin/employees" element={<EmployeesList />} />
+          <Route
+            path="/admin/employees/:id/edit"
+            element={<EditEmployeeForm />}
+          />
+          <Route path="/admin/employees/new" element={<AddEmployeeForm />} />
+          <Route path="/admin/patients" element={<PatientsList />} />
+          <Route
+            path="/admin/patients/:id/edit"
+            element={<EditPatientForm />}
+          />
+          <Route path="/admin/services" element={<ServicesList />} />
         </Route>
 
         {/* Optional: Catch-all route for 404 Not Found */}

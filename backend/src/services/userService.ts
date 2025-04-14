@@ -46,10 +46,15 @@ export async function findById(id: string): Promise<User | null> {
   }
 }
 
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 10;
+  return bcrypt.hash(password, saltRounds);
+}
+
 export async function createUser(userData: UserCreateInput): Promise<User> {
   try {
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+    // Hash the password before storing it
+    const hashedPassword = await hashPassword(userData.password);
 
     // Create user with role in a transaction
     const user = await prisma.$transaction(async (tx) => {
