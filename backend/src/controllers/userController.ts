@@ -95,6 +95,30 @@ export const deactivateUser = async (
   }
 };
 
+// Add a new function to reactivate users
+export const reactivateUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+      res.status(400).json({ message: "Invalid user ID" });
+      return;
+    }
+
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: { is_active: true },
+    });
+
+    res.json({ message: "User reactivated successfully" });
+  } catch (error) {
+    console.error("Error reactivating user:", error);
+    res.status(500).json({ message: "Failed to reactivate user" });
+  }
+};
+
 // Get a single user by ID (for admin view)
 export const getUserById = async (
   req: Request,

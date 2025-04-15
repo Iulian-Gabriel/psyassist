@@ -202,14 +202,6 @@ export default function EmployeesList() {
   // Define filterable columns for dropdown filters
   const filterableColumns = [
     {
-      id: "role",
-      title: "Role",
-      options: [
-        { value: "admin", label: "Admin" },
-        { value: "doctor", label: "Doctor" },
-      ],
-    },
-    {
       id: "job_title",
       title: "Job Title",
       options: [
@@ -233,7 +225,6 @@ export default function EmployeesList() {
     { id: "name", title: "Name" },
     { id: "email", title: "Email" },
     { id: "job_title", title: "Job Title" },
-    { id: "role", title: "Role" },
     { id: "specialization", title: "Specialization" },
   ];
 

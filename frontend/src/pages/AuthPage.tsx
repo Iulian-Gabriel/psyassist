@@ -39,11 +39,6 @@ export default function AuthPage() {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [error, setError] = useState<string>(""); // Component-level error message
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [dob, setDob] = useState("");
 
   const { login, register } = useAuth(); // Get functions from context
 
@@ -79,12 +74,13 @@ export default function AuthPage() {
   };
 
   const onSubmit = async (data: LoginCredentials | RegisterFormData) => {
-    setError("");
-    setLoading(true);
-
     try {
+      setLoading(true);
+      setError("");
+
       if (isLoginMode) {
-        await login(data);
+        // Pass the actual form data that was validated, not the state values
+        await login(data as LoginCredentials);
       } else {
         await register(data as RegisterFormData);
       }
@@ -128,8 +124,6 @@ export default function AuthPage() {
                 id="email"
                 placeholder="you@example.com"
                 disabled={loading}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
               />
               {errors.email && (
                 <p className="text-xs text-red-500">{errors.email.message}</p>
@@ -139,14 +133,12 @@ export default function AuthPage() {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="password">Password</Label>
               <Input
-                {...registerField("password")}
+                {...registerField("password")} // This handles the connection to React Hook Form
                 type="password"
                 id="password"
                 placeholder="••••••••"
                 disabled={loading}
                 autoComplete={isLoginMode ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
               />
               {errors.password && (
                 <p className="text-xs text-red-500">
@@ -168,8 +160,6 @@ export default function AuthPage() {
                       placeholder="John"
                       disabled={loading}
                       autoComplete="given-name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
                     />
                     {"firstName" in errors && errors.firstName && (
                       <p className="text-xs text-red-500">
@@ -186,8 +176,6 @@ export default function AuthPage() {
                       placeholder="Doe"
                       disabled={loading}
                       autoComplete="family-name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
                     />
                     {!isLoginMode &&
                       "lastName" in errors &&
@@ -207,8 +195,6 @@ export default function AuthPage() {
                     disabled={loading}
                     autoComplete="bday"
                     max={new Date().toISOString().split("T")[0]} // Prevent future dates
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
                   />
                   {!isLoginMode && "dob" in errors && errors.dob && (
                     <p className="text-xs text-red-500">{errors.dob.message}</p>

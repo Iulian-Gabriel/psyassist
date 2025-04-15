@@ -6,9 +6,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { ColumnHeader } from "@/components/ui/data-table/ColumnHeader";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
+import { SortingState } from "@tanstack/react-table";
 
 interface User {
   user_id: number;
@@ -24,6 +25,9 @@ export default function AdminUsersList() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "status", desc: false }, // 'false' means ascending - active first, inactive last
+  ]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,6 +84,26 @@ export default function AdminUsersList() {
       console.error("Failed to deactivate user:", err);
       // Show error message
       setError("Failed to deactivate user. Please try again.");
+    }
+  };
+
+  // Add reactivate function
+  const handleReactivate = async (userId: number) => {
+    if (!confirm("Are you sure you want to reactivate this user?")) {
+      return;
+    }
+
+    try {
+      await api.patch(`/users/${userId}/reactivate`);
+      // Update the users list after reactivation
+      setUsers(
+        users.map((user) =>
+          user.user_id === userId ? { ...user, is_active: true } : user
+        )
+      );
+    } catch (err) {
+      console.error("Failed to reactivate user:", err);
+      setError("Failed to reactivate user. Please try again.");
     }
   };
 
@@ -143,13 +167,25 @@ export default function AdminUsersList() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button
-            variant="accent"
-            size="sm"
-            onClick={() => handleEdit(row.original.user_id)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
+          {row.original.is_active ? (
+            // Show Edit button if active
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => handleEdit(row.original.user_id)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          ) : (
+            // Show Reactivate button if inactive
+            <Button
+              variant="success" // You might need to add this variant to your button.tsx
+              size="sm"
+              onClick={() => handleReactivate(row.original.user_id)}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -171,20 +207,11 @@ export default function AdminUsersList() {
   // Define filterable columns
   const filterableColumns = [
     {
-      id: "roles",
-      title: "Role",
-      options: [
-        { value: "admin", label: "Admin" },
-        { value: "doctor", label: "Doctor" },
-        { value: "patient", label: "Patient" },
-      ],
-    },
-    {
-      id: "is_active", // or "status" if that's how you've named it
+      id: "status", // CHANGE THIS to match the column ID
       title: "Status",
       options: [
-        { value: "true", label: "Active" },
-        { value: "false", label: "Inactive" },
+        { value: "Active", label: "Active" }, // CHANGE THESE values to match what your accessorFn returns
+        { value: "Inactive", label: "Inactive" },
       ],
     },
   ];
@@ -193,7 +220,6 @@ export default function AdminUsersList() {
   const searchableColumns = [
     { id: "name", title: "Name" },
     { id: "email", title: "Email" },
-    { id: "roles", title: "Roles" },
   ];
 
   if (loading) {
@@ -227,6 +253,7 @@ export default function AdminUsersList() {
               searchableColumns={searchableColumns} // Pass searchable columns
               filterableColumns={filterableColumns}
               pagination={true}
+              initialSorting={sorting} // Add this prop to set default sorting
             />
           )}
         </CardContent>

@@ -311,6 +311,42 @@ export const deactivateEmployee = async (
   }
 };
 
+// Add this function to handle employee reactivation
+export const reactivateEmployee = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const employeeId = parseInt(req.params.id, 10);
+    if (isNaN(employeeId)) {
+      res.status(400).json({ message: "Invalid employee ID" });
+      return;
+    }
+
+    // First get the employee to find the associated user
+    const employee = await prisma.employee.findUnique({
+      where: { employee_id: employeeId },
+      select: { user_id: true },
+    });
+
+    if (!employee) {
+      res.status(404).json({ message: "Employee not found" });
+      return;
+    }
+
+    // Reactivate the associated user
+    await prisma.user.update({
+      where: { user_id: employee.user_id },
+      data: { is_active: true },
+    });
+
+    res.json({ message: "Employee reactivated successfully" });
+  } catch (error) {
+    console.error("Error reactivating employee:", error);
+    res.status(500).json({ message: "Failed to reactivate employee" });
+  }
+};
+
 // Add this function to handle employee updates with role changes
 
 export const updateEmployee = async (

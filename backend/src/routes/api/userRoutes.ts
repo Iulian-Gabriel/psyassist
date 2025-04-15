@@ -23,6 +23,14 @@ router.patch(
   userController.deactivateUser
 );
 
+// Add reactivate route
+router.patch(
+  "/:id/reactivate",
+  authenticateToken,
+  authorizeAdmin,
+  userController.reactivateUser
+);
+
 // Add this route
 router.get(
   "/roles",

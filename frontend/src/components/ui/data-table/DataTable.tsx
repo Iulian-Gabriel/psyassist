@@ -39,6 +39,7 @@ interface DataTableProps<TData, TValue> {
     title: string;
   }[];
   pagination?: boolean;
+  initialSorting?: SortingState; // Add this prop
 }
 
 export function DataTable<TData, TValue>({
@@ -49,11 +50,15 @@ export function DataTable<TData, TValue>({
   filterableColumns = [],
   searchableColumns = [],
   pagination = true,
+  initialSorting = [], // Default to empty array
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // Use initialSorting in the useState initialization
+  const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [globalFilter, setGlobalFilter] = useState("");
+  // Add state for current page
+  const [pageIndex, setPageIndex] = useState(0);
 
   // Determine searchable columns based on props
   const effectiveSearchableColumns =
@@ -79,11 +84,27 @@ export function DataTable<TData, TValue>({
       globalFilter,
       pagination: pagination
         ? {
-            pageIndex: 0,
+            pageIndex, // Use the state value
             pageSize: rowsPerPage,
           }
         : undefined,
     },
+    // Add pagination handlers
+    onPaginationChange: pagination
+      ? (updater) => {
+          if (typeof updater === "function") {
+            const newState = updater({
+              pageIndex,
+              pageSize: rowsPerPage,
+            });
+            setPageIndex(newState.pageIndex);
+            setRowsPerPage(newState.pageSize);
+          } else {
+            setPageIndex(updater.pageIndex);
+            setRowsPerPage(updater.pageSize);
+          }
+        }
+      : undefined,
     // Custom filter function for global search
     filterFns: {
       globalSearch: (row, columnId, value) => {
@@ -101,58 +122,27 @@ export function DataTable<TData, TValue>({
       const searchValue = String(filterValue).toLowerCase();
 
       return effectiveSearchableColumns.some((column) => {
-        // Get the column's value
-        let value;
-        try {
-          value = row.getValue(column.id);
-        } catch {
-          // Remove the underscore variable completely
-          return false;
-        }
-
-        // Try to handle nested path access, e.g. "user.address.city"
-        if (column.id.includes(".")) {
-          const path = column.id.split(".");
-          let current = row.original;
-
-          try {
-            for (const key of path) {
-              current = current[key as keyof typeof current];
-              if (current === undefined || current === null) break;
-            }
-            value = current;
-          } catch {
-            // Remove the underscore variable completely
-            return false;
-          }
-        }
-
-        // Skip null/undefined values
-        if (value == null) return false;
-
-        // Compare the value (convert to string to ensure we can search numbers too)
-        return String(value).toLowerCase().includes(searchValue);
+        const cellValue = String(row.getValue(column.id) || "").toLowerCase();
+        return cellValue.includes(searchValue);
       });
     },
     onGlobalFilterChange: setGlobalFilter,
   });
 
   return (
-    <div>
-      {/* Advanced filtering toolbar with global search */}
-      {(effectiveSearchableColumns.length > 0 ||
-        filterableColumns.length > 0) && (
-        <DataTableToolbar
-          table={table}
-          searchableColumns={effectiveSearchableColumns}
-          filterableColumns={filterableColumns}
-          globalFilter={globalFilter}
-          setGlobalFilter={setGlobalFilter}
-          searchPlaceholder={searchPlaceholder}
-        />
-      )}
+    <div className="space-y-4">
+      {/* DataTableToolbar component */}
+      <DataTableToolbar
+        table={table}
+        filterableColumns={filterableColumns}
+        searchableColumns={effectiveSearchableColumns}
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
+        searchPlaceholder={searchPlaceholder}
+      />
 
-      <div className="rounded-md border">
+      {/* Table with shadow for better visibility */}
+      <div className="rounded-md border shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -193,7 +183,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No results found.
                 </TableCell>
               </TableRow>
             )}
@@ -201,21 +191,19 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination controls */}
+      {/* Pagination controls - fixed with proper event handlers */}
       {pagination && (
-        <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex items-center justify-between px-2">
           <div className="flex-1 text-sm text-muted-foreground">
-            Showing {table.getFilteredRowModel().rows.length} of {data.length}{" "}
-            entries
+            {table.getFilteredRowModel().rows.length} row(s) total.
           </div>
           <div className="flex items-center space-x-6 lg:space-x-8">
             <div className="flex items-center space-x-2">
               <p className="text-sm font-medium">Rows per page</p>
               <select
-                className="h-8 w-16 rounded-md border border-input bg-transparent"
-                value={rowsPerPage}
+                className="h-8 rounded-md border border-input bg-transparent px-2"
+                value={table.getState().pagination.pageSize}
                 onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
                   table.setPageSize(Number(e.target.value));
                 }}
               >
@@ -225,6 +213,10 @@ export function DataTable<TData, TValue>({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="flex items-center justify-center text-sm font-medium">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount() || 1}
             </div>
             <div className="flex items-center space-x-2">
               <Button

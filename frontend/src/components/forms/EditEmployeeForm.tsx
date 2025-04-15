@@ -181,15 +181,13 @@ export default function EditEmployeeForm() {
         },
         job_title: employeeData.job_title,
         hire_date: employeeData.hire_date,
+        doctor: isDoctor
+          ? {
+              specialization: employeeData.doctor?.specialization,
+              bio: employeeData.doctor?.bio,
+            }
+          : null,
       });
-
-      // If the employee is a doctor, update doctor-specific information
-      if (isDoctor && employeeData.doctor) {
-        await api.put(`/doctors/${id}`, {
-          specialization: employeeData.doctor.specialization,
-          bio: employeeData.doctor.bio,
-        });
-      }
 
       setSuccess("Employee updated successfully!");
 
@@ -370,7 +368,6 @@ export default function EditEmployeeForm() {
                     disabled={saving}
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="address_city">City</Label>
                   <Input
@@ -381,7 +378,6 @@ export default function EditEmployeeForm() {
                     disabled={saving}
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="address_postal_code">Postal Code</Label>
                   <Input
@@ -392,7 +388,6 @@ export default function EditEmployeeForm() {
                     disabled={saving}
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="address_county">County</Label>
                   <Input
@@ -403,7 +398,6 @@ export default function EditEmployeeForm() {
                     disabled={saving}
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="address_country">Country</Label>
                   <Input
@@ -414,8 +408,6 @@ export default function EditEmployeeForm() {
                     disabled={saving}
                   />
                 </div>
-
-                {/* Doctor-specific fields */}
                 {isDoctor && (
                   <>
                     <div>
@@ -479,7 +471,7 @@ export default function EditEmployeeForm() {
                 </select>
               </div>
 
-              {/* Only show doctor fields if the doctor role is selected */}
+              {/* Only show doctor fields if the doctor role is selected
               {isDoctor && (
                 <div className="mt-4 space-y-4 border-t pt-4">
                   <h4 className="font-medium">Doctor Details</h4>
@@ -523,7 +515,7 @@ export default function EditEmployeeForm() {
                     />
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
 
             <div className="flex justify-end gap-2">

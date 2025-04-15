@@ -43,5 +43,12 @@ router.put(
   authorizeAdmin,
   employeeController.updateEmployee
 );
+// Add reactivate route
+router.patch(
+  "/:id/reactivate",
+  authenticateToken,
+  authorizeAdmin,
+  employeeController.reactivateEmployee
+);
 
 export default router;

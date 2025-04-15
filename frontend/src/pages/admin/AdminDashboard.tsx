@@ -53,6 +53,7 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
         const data = await fetchAdminStats();
+        console.log("Admin stats data:", data); // Add this line
         setStats(data.stats);
         // setAppointments(data.recentAppointments);
         setError(null);
