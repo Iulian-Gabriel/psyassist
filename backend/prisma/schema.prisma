@@ -35,59 +35,59 @@ model Employee {
 }
 
 model Feedback {
-  feedback_id         Int                 @id @default(autoincrement())
-  service_id          Int
-  participant_id      Int
-  rating_score        Int?
-  comments            String?
-  submission_date     DateTime            @default(now()) @db.Timestamp(6)
-  is_anonymous        Boolean             @default(false)
-  serviceParticipant  ServiceParticipant  @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
-  service             Service             @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
+  feedback_id        Int                @id @default(autoincrement())
+  service_id         Int
+  participant_id     Int
+  rating_score       Int?
+  comments           String?
+  submission_date    DateTime           @default(now()) @db.Timestamp(6)
+  is_anonymous       Boolean            @default(false)
+  serviceParticipant ServiceParticipant @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
+  service            Service            @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("FEEDBACK")
 }
 
 model Notes {
-  note_id             Int                  @id @default(autoincrement())
-  service_id          Int
-  participant_id      Int?
-  content             String
-  created_at          DateTime             @default(now()) @db.Timestamp(6)
-  updated_at          DateTime             @default(now()) @db.Timestamp(6)
-  serviceParticipant  ServiceParticipant?  @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
-  service             Service              @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
+  note_id            Int                 @id @default(autoincrement())
+  service_id         Int
+  participant_id     Int?
+  content            String
+  created_at         DateTime            @default(now()) @db.Timestamp(6)
+  updated_at         DateTime            @default(now()) @db.Timestamp(6)
+  serviceParticipant ServiceParticipant? @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
+  service            Service             @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("NOTES")
 }
 
 model Notices {
-  notice_id            Int                 @id @default(autoincrement())
+  notice_id            Int                @id @default(autoincrement())
   service_id           Int
   participant_id       Int
-  issue_date           DateTime            @default(now()) @db.Date
-  unique_notice_number String?             @unique @db.VarChar(50)
-  expiry_date          DateTime?           @db.Date
+  issue_date           DateTime           @default(now()) @db.Date
+  unique_notice_number String?            @unique @db.VarChar(50)
+  expiry_date          DateTime?          @db.Date
   reason_for_issuance  String?
-  fitness_status       String?             @db.VarChar(50)
+  fitness_status       String?            @db.VarChar(50)
   recommendations      String?
-  attachment_path      String?             @db.VarChar(512)
-  created_at           DateTime            @default(now()) @db.Timestamp(6)
-  updated_at           DateTime            @default(now()) @db.Timestamp(6)
-  serviceParticipant   ServiceParticipant  @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
-  service              Service             @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
+  attachment_path      String?            @db.VarChar(512)
+  created_at           DateTime           @default(now()) @db.Timestamp(6)
+  updated_at           DateTime           @default(now()) @db.Timestamp(6)
+  serviceParticipant   ServiceParticipant @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
+  service              Service            @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("NOTICES")
 }
 
 model Patient {
-  patient_id              Int                   @id @default(autoincrement())
-  user_id                 Int                   @unique
-  emergency_contact_name  String?               @db.VarChar(200)
-  emergency_contact_phone String?               @db.VarChar(20)
-  created_at              DateTime              @default(now()) @db.Timestamp(6)
-  updated_at              DateTime              @default(now()) @db.Timestamp(6)
-  user                    User                  @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  patient_id              Int                  @id @default(autoincrement())
+  user_id                 Int                  @unique
+  emergency_contact_name  String?              @db.VarChar(200)
+  emergency_contact_phone String?              @db.VarChar(20)
+  created_at              DateTime             @default(now()) @db.Timestamp(6)
+  updated_at              DateTime             @default(now()) @db.Timestamp(6)
+  user                    User                 @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
   patientForms            PatientForm[]
   serviceParticipants     ServiceParticipant[]
   testInstances           TestInstance[]
@@ -107,20 +107,20 @@ model PatientForm {
 }
 
 model Permission {
-  permission_id    Int                @id @default(autoincrement())
-  permission_name  String             @unique @db.VarChar(100)
-  description      String?            @db.VarChar(255)
-  rolePermissions  RolePermissions[]
+  permission_id   Int               @id @default(autoincrement())
+  permission_name String            @unique @db.VarChar(100)
+  description     String?           @db.VarChar(255)
+  rolePermissions RolePermissions[]
 
   @@map("PERMISSION")
 }
 
 model Role {
-  role_id          Int                @id @default(autoincrement())
-  role_name        String             @unique @db.VarChar(50)
-  description      String?            @db.VarChar(255)
-  rolePermissions  RolePermissions[]
-  userRoles        UserRoles[]
+  role_id         Int               @id @default(autoincrement())
+  role_name       String            @unique @db.VarChar(50)
+  description     String?           @db.VarChar(255)
+  rolePermissions RolePermissions[]
+  userRoles       UserRoles[]
 
   @@map("ROLE")
 }
@@ -137,19 +137,19 @@ model RolePermissions {
 }
 
 model Service {
-  service_id          Int                   @id @default(autoincrement())
+  service_id          Int                  @id @default(autoincrement())
   employee_id         Int
-  service_type        ServiceTypesEnum      @default(Consultation)
-  start_time          DateTime              @db.Timestamp(6)
-  end_time            DateTime              @db.Timestamp(6)
-  status              String                @default("Scheduled") @db.VarChar(50)
-  cancel_reason       String?               @db.VarChar(255)
-  created_at          DateTime              @default(now()) @db.Timestamp(6)
-  updated_at          DateTime              @default(now()) @db.Timestamp(6)
+  service_type        ServiceTypesEnum     @default(Consultation)
+  start_time          DateTime             @db.Timestamp(6)
+  end_time            DateTime             @db.Timestamp(6)
+  status              String               @default("Scheduled") @db.VarChar(50)
+  cancel_reason       String?              @db.VarChar(255)
+  created_at          DateTime             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime             @default(now()) @db.Timestamp(6)
   feedbacks           Feedback[]
   notes               Notes[]
   notices             Notices[]
-  doctor              Doctor                @relation(fields: [employee_id], references: [doctor_id], onDelete: NoAction, onUpdate: NoAction)
+  doctor              Doctor               @relation(fields: [employee_id], references: [doctor_id], onDelete: NoAction, onUpdate: NoAction)
   serviceParticipants ServiceParticipant[]
 
   @@map("SERVICE")
@@ -172,25 +172,23 @@ model ServiceParticipant {
 }
 
 model TestInstance {
-  test_instance_id         Int                    @id @default(autoincrement())
+  test_instance_id         Int                  @id @default(autoincrement())
   patient_id               Int?
   test_template_version_ID Int?
-  testStartDate            DateTime?              @db.Timestamp(6)
-  testStopDate             DateTime?              @db.Timestamp(6)
+  testStartDate            DateTime?            @db.Timestamp(6)
+  testStopDate             DateTime?            @db.Timestamp(6)
   patientResponse          Json?
-  patientExternalResponse  String?
-  patient                  Patient?               @relation(fields: [patient_id], references: [patient_id], onDelete: NoAction, onUpdate: NoAction)
-  testTemplateVersion      TestTemplateVersion?   @relation(fields: [test_template_version_ID], references: [test_template_version_ID], onDelete: NoAction, onUpdate: NoAction)
+  testTemplateVersion      TestTemplateVersion? @relation(fields: [test_template_version_ID], references: [test_template_version_ID], onDelete: NoAction, onUpdate: NoAction)
+  patient                  Patient?             @relation(fields: [patient_id], references: [patient_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("TEST_INSTANCE")
 }
 
 model TestTemplate {
-  test_template_id          Int                     @id @default(autoincrement())
+  test_template_id          Int                   @id @default(autoincrement())
   name                      String?
   isActive                  Boolean?
-  template_instance_url     String?
-  template_questions_string String?
+  template_questions        Json?
   isExternal                Boolean?
   testTemplateVersions      TestTemplateVersion[]
 
@@ -198,34 +196,35 @@ model TestTemplate {
 }
 
 model TestTemplateVersion {
-  test_template_version_ID Int             @id @default(autoincrement())
+  test_template_version_ID Int            @id @default(autoincrement())
   test_template_id         Int?
   version                  Int?
-  created_at               DateTime        @default(now()) @db.Timestamp(6)
-  testInstances            TestInstance[]
-  testTemplate             TestTemplate?   @relation(fields: [test_template_id], references: [test_template_id], onDelete: NoAction, onUpdate: NoAction)
+  created_at               DateTime       @default(now()) @db.Timestamp(6)
+  questionsJson            Json?
+  testInstances            TestInstance[] // Actually added as a relation now
+  testTemplate             TestTemplate?  @relation(fields: [test_template_id], references: [test_template_id])
 
   @@map("TEST_TEMPLATE_VERSION")
 }
 
 model User {
-  user_id             Int          @id @default(autoincrement())
-  email               String       @unique @db.VarChar(255)
-  password_hash       String       @db.VarChar(255)
-  first_name          String       @db.VarChar(100)
-  last_name           String       @db.VarChar(100)
-  date_of_birth       DateTime     @db.Date
-  gender              GendersEnum  @default(unspecified)
-  phone_number        String?      @unique @db.VarChar(20)
-  address_street      String?      @db.VarChar(255)
-  address_city        String?      @db.VarChar(100)
-  address_postal_code String?      @db.VarChar(20)
-  address_country     String?      @db.VarChar(100)
-  address_county      String?      @db.VarChar(100)
-  is_active           Boolean      @default(true)
-  created_at          DateTime     @default(now()) @db.Timestamp(6)
-  updated_at          DateTime     @default(now()) @db.Timestamp(6)
-  last_login_at       DateTime?    @db.Timestamp(6)
+  user_id             Int         @id @default(autoincrement())
+  email               String      @unique @db.VarChar(255)
+  password_hash       String      @db.VarChar(255)
+  first_name          String      @db.VarChar(100)
+  last_name           String      @db.VarChar(100)
+  date_of_birth       DateTime    @db.Date
+  gender              GendersEnum @default(unspecified)
+  phone_number        String?     @unique @db.VarChar(20)
+  address_street      String?     @db.VarChar(255)
+  address_city        String?     @db.VarChar(100)
+  address_postal_code String?     @db.VarChar(20)
+  address_country     String?     @db.VarChar(100)
+  address_county      String?     @db.VarChar(100)
+  is_active           Boolean     @default(true)
+  created_at          DateTime    @default(now()) @db.Timestamp(6)
+  updated_at          DateTime    @default(now()) @db.Timestamp(6)
+  last_login_at       DateTime?   @db.Timestamp(6)
   employee            Employee?
   patient             Patient?
   userRoles           UserRoles[]

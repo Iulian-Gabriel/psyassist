@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { ColumnHeader } from "@/components/ui/data-table/ColumnHeader";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { Edit, Trash2 } from "lucide-react"; // Add Trash2 icon import
+import { Edit, Trash2, RefreshCw } from "lucide-react"; // Add Trash2 and RefreshCw icon imports
 import { Badge } from "@/components/ui/badge";
 
 interface Employee {
@@ -87,6 +87,28 @@ export default function EmployeesList() {
     } catch (err) {
       console.error("Failed to deactivate employee:", err);
       setError("Failed to deactivate employee. Please try again.");
+    }
+  };
+
+  // Add this function below your handleDeactivate function
+  const handleReactivate = async (employeeId: number) => {
+    if (!confirm("Are you sure you want to reactivate this employee?")) {
+      return;
+    }
+
+    try {
+      await api.patch(`/employees/${employeeId}/reactivate`);
+      // Refresh the employees list after reactivation
+      setEmployees(
+        employees.map((emp) =>
+          emp.employee_id === employeeId
+            ? { ...emp, user: { ...emp.user, is_active: true } }
+            : emp
+        )
+      );
+    } catch (err) {
+      console.error("Failed to reactivate employee:", err);
+      setError("Failed to reactivate employee. Please try again.");
     }
   };
 
@@ -174,13 +196,25 @@ export default function EmployeesList() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEdit(row.original.employee_id)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
+          {row.original.user.is_active ? (
+            // Show Edit button if active
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEdit(row.original.employee_id)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          ) : (
+            // Show Reactivate button if inactive
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => handleReactivate(row.original.employee_id)}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"

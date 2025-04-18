@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/services/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Edit, Trash2, RefreshCw, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
+
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
+
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { ColumnHeader } from "@/components/ui/data-table/ColumnHeader";
-import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { Edit, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import type { ColumnDef } from "@tanstack/react-table";
 
 // Define the Patient interface to match your data structure
 interface Patient {
@@ -19,6 +20,7 @@ interface Patient {
     first_name: string;
     last_name: string;
     is_active: boolean;
+    phone_number?: string;
   };
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
@@ -28,6 +30,10 @@ export default function PatientsList() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Initialize sorting state to show active patients first
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "status", desc: false }, // false means ascending - active first
+  ]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,7 +42,6 @@ export default function PatientsList() {
         setLoading(true);
         const response = await api.get("/patients");
         setPatients(response.data);
-        setError(null);
       } catch (err) {
         console.error("Failed to fetch patients:", err);
         setError("Failed to load patients. Please try again later.");
@@ -54,6 +59,18 @@ export default function PatientsList() {
     { id: "email", title: "Email" },
     { id: "phone", title: "Phone" },
     { id: "emergency_contact", title: "Emergency Contact" },
+  ];
+
+  // Define filterable columns
+  const filterableColumns = [
+    {
+      id: "status",
+      title: "Status",
+      options: [
+        { value: "Active", label: "Active" },
+        { value: "Inactive", label: "Inactive" },
+      ],
+    },
   ];
 
   // Add this function inside the component
@@ -75,6 +92,28 @@ export default function PatientsList() {
     } catch (err) {
       console.error("Failed to deactivate patient:", err);
       setError("Failed to deactivate patient. Please try again.");
+    }
+  };
+
+  // Add function to reactivate patients
+  const handleReactivate = async (patientId: number) => {
+    if (!confirm("Are you sure you want to reactivate this patient?")) {
+      return;
+    }
+
+    try {
+      await api.patch(`/patients/${patientId}/reactivate`);
+      // Refresh the patients list after reactivation
+      setPatients(
+        patients.map((patient) =>
+          patient.patient_id === patientId
+            ? { ...patient, user: { ...patient.user, is_active: true } }
+            : patient
+        )
+      );
+    } catch (err) {
+      console.error("Failed to reactivate patient:", err);
+      setError("Failed to reactivate patient. Please try again.");
     }
   };
 
@@ -105,6 +144,11 @@ export default function PatientsList() {
       header: ({ column }) => <ColumnHeader column={column} title="Email" />,
     },
     {
+      id: "phone",
+      accessorFn: (row) => row.user.phone_number || "Not provided",
+      header: ({ column }) => <ColumnHeader column={column} title="Phone" />,
+    },
+    {
       id: "emergency_contact_name",
       accessorFn: (row) => row.emergency_contact_name || "Not provided",
       header: ({ column }) => (
@@ -119,17 +163,48 @@ export default function PatientsList() {
       ),
     },
     {
+      id: "status",
+      accessorFn: (row) => (row.user.is_active ? "Active" : "Inactive"),
+      header: ({ column }) => <ColumnHeader column={column} title="Status" />,
+      cell: ({ row }) => (
+        <Badge
+          variant={row.original.user.is_active ? "default" : "destructive"}
+        >
+          {row.original.user.is_active ? "Active" : "Inactive"}
+        </Badge>
+      ),
+      filterFn: (row, id, filterValue) => {
+        const status = row.original.user.is_active ? "Active" : "Inactive";
+        return status === filterValue;
+      },
+    },
+    {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEdit(row.original.patient_id)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
+          {row.original.user.is_active ? (
+            // Show Edit button if active
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEdit(row.original.patient_id)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          ) : (
+            // Show Reactivate button if inactive
+            <Button
+              variant="success" // Green button for reactivation
+              size="sm"
+              onClick={() => handleReactivate(row.original.patient_id)}
+              title="Reactivate Patient"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Always show Deactivate button, but disable it for inactive patients */}
           <Button
             variant="destructive"
             size="sm"
@@ -146,18 +221,6 @@ export default function PatientsList() {
         </div>
       ),
     },
-    {
-      id: "status",
-      accessorFn: (row) => (row.user.is_active ? "Active" : "Inactive"),
-      header: ({ column }) => <ColumnHeader column={column} title="Status" />,
-      cell: ({ row }) => (
-        <Badge
-          variant={row.original.user.is_active ? "default" : "destructive"}
-        >
-          {row.original.user.is_active ? "Active" : "Inactive"}
-        </Badge>
-      ),
-    },
   ];
 
   // In your return statement
@@ -165,30 +228,34 @@ export default function PatientsList() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Patients Management</h1>
-        <Link to="/admin">
-          <Button variant="outline">Back to Dashboard</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate("/admin/add-patient")}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Patient
+          </Button>
+          <Link to="/admin">
+            <Button variant="outline">Back to Dashboard</Button>
+          </Link>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Patients</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error ? (
-            <ApiErrorDisplay error={error} />
-          ) : loading ? (
-            <div className="flex justify-center p-4">Loading patients...</div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={patients}
-              searchableColumns={searchableColumns}
-              pagination={true}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {error && <ApiErrorDisplay error={error} className="mb-4" />}
+
+      {loading ? (
+        <div className="flex justify-center p-6">
+          <p>Loading patients...</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={patients}
+          searchableColumns={searchableColumns}
+          filterableColumns={filterableColumns}
+          sorting={sorting}
+          setSorting={setSorting}
+          searchPlaceholder="Search patients..."
+        />
+      )}
     </div>
   );
 }

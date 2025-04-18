@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { config } from "../config/env";
 
 // Extend Express Request type to include userId
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   userId?: string;
 }
 

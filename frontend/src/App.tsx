@@ -22,6 +22,15 @@ import EditPatientForm from "./components/forms/EditPatientForm";
 // Add this import at the top of your file with the other admin page imports
 import PatientsList from "./pages/admin/PatientsList";
 
+// Replace these imports
+import PsychologicalForms from "./components/forms/PsychologicalForms";
+import ServiceFormCreator from "./components/forms/ServiceFormCreator";
+import ServiceFormView from "./components/forms/ServiceFormView";
+import EditPsychologicalForm from "./components/forms/EditPsychologicalForm";
+
+// Add this import with your other page imports
+import AddPatientForm from "./pages/admin/AddPatientForm";
+
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, logout, user } = useAuth(); // Add user to destructuring
@@ -210,6 +219,33 @@ function App() {
             element={<EditPatientForm />}
           />
           <Route path="/admin/services" element={<ServicesList />} />
+          <Route path="/admin/add-employee" element={<AddEmployeeForm />} />
+          <Route path="/admin/add-patient" element={<AddPatientForm />} />
+        </Route>
+
+        {/* Psychological Forms Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/psychological-forms" element={<PsychologicalForms />} />
+          <Route
+            path="/psychological-forms/create"
+            element={<ServiceFormCreator />}
+          />
+          <Route
+            path="/psychological-forms/:id"
+            element={
+              <Layout>
+                <ServiceFormView />
+              </Layout>
+            }
+          />
+          <Route
+            path="/psychological-forms/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditPsychologicalForm />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Optional: Catch-all route for 404 Not Found */}

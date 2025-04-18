@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,38 +11,17 @@ import {
 } from "@/components/ui/card";
 import { fetchAdminStats } from "@/services/adminService";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { Users, UserCog, Activity } from "lucide-react"; // Import icons
+import { Users, UserCog, Activity } from "lucide-react"; // Added UserCircle icon
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes("admin");
+
   const [stats, setStats] = useState<{
     totalUsers: number;
     totalDoctors: number;
     totalPatients: number;
   } | null>(null);
-  //   const [appointments, setAppointments] = useState<
-  //     {
-  //       service_id: string;
-  //       service_type: string;
-  //       start_time: string;
-  //       status: string;
-  //       doctor: {
-  //         employee: {
-  //           user: {
-  //             first_name: string;
-  //             last_name: string;
-  //           };
-  //         };
-  //       };
-  //       serviceParticipants: Array<{
-  //         patient: {
-  //           user: {
-  //             first_name: string;
-  //             last_name: string;
-  //           };
-  //         };
-  //       }>;
-  //     }[]
-  //   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorStatusCode, setErrorStatusCode] = useState<number | undefined>(
@@ -53,9 +33,8 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
         const data = await fetchAdminStats();
-        console.log("Admin stats data:", data); // Add this line
+        console.log("Admin stats data:", data);
         setStats(data.stats);
-        // setAppointments(data.recentAppointments);
         setError(null);
       } catch (err: unknown) {
         console.error("Failed to fetch admin stats:", err);
@@ -144,7 +123,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Users Management</CardTitle>
@@ -184,6 +163,42 @@ export default function AdminDashboard() {
             <div className="space-y-2">
               <Link to="/admin/services">
                 <Button className="w-full">View All Services</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Patient Management Card - added in the main grid with other cards */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Patient Management</CardTitle>
+            <CardDescription>Manage patients and their records</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Link to="/admin/patients">
+                <Button className="w-full">View All Patients</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Assessment Forms</CardTitle>
+            <CardDescription>
+              Manage psychological assessment forms
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Link to="/psychological-forms">
+                <Button className="w-full">View All Forms</Button>
+              </Link>
+              <Link to="/psychological-forms/create">
+                <Button className="w-full" variant="outline">
+                  Create New Form
+                </Button>
               </Link>
             </div>
           </CardContent>

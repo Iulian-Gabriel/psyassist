@@ -9,6 +9,8 @@ import authRoutes from "./routes/api/authRoutes";
 import userRoutes from "./routes/api/userRoutes";
 import employeeRoutes from "./routes/api/employeeRoutes";
 import adminRoutes from "./routes/api/adminRoutes";
+import formsRoutes from "./routes/api/formsRoutes";
+import patientRoutes from "./routes/api/patientRoutes"; // Add this import
 // Import other routes as needed
 
 const app = express();
@@ -37,6 +39,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/forms", formsRoutes);
+app.use("/api/patients", patientRoutes); // Add this line with the other routes
 // ... use other routes
 
 // --- Error Handling Middleware ---

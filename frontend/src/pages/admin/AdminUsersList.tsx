@@ -253,7 +253,8 @@ export default function AdminUsersList() {
               searchableColumns={searchableColumns} // Pass searchable columns
               filterableColumns={filterableColumns}
               pagination={true}
-              initialSorting={sorting} // Add this prop to set default sorting
+              sorting={sorting}
+              setSorting={setSorting}
             />
           )}
         </CardContent>
