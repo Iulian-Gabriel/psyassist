@@ -26,6 +26,12 @@ export const createPatient = async (
       // Patient-specific data
       emergency_contact_name,
       emergency_contact_phone,
+
+      // Consent data
+      tos_accepted,
+      gdpr_accepted,
+      tos_accepted_date,
+      gdpr_accepted_date,
     } = req.body;
 
     // Validate required fields
@@ -91,6 +97,14 @@ export const createPatient = async (
           user_id: user.user_id,
           emergency_contact_name,
           emergency_contact_phone,
+          tos_accepted: tos_accepted || false,
+          gdpr_accepted: gdpr_accepted || false,
+          tos_accepted_date: tos_accepted_date
+            ? new Date(tos_accepted_date)
+            : null,
+          gdpr_accepted_date: gdpr_accepted_date
+            ? new Date(gdpr_accepted_date)
+            : null,
         },
       });
 

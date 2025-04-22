@@ -232,11 +232,7 @@ function App() {
           />
           <Route
             path="/psychological-forms/:id"
-            element={
-              <Layout>
-                <ServiceFormView />
-              </Layout>
-            }
+            element={<ServiceFormView />}
           />
           <Route
             path="/psychological-forms/:id/edit"

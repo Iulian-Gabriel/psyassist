@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // import { Textarea } from "@/components/ui/textarea";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
+import { GdprConsentDialog } from "@/components/GdprConsentDialog";
 
 export default function AddPatientForm() {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ export default function AddPatientForm() {
   const [success, setSuccess] = useState<string | null>(null);
   const [errorStatusCode, setErrorStatusCode] = useState<number | undefined>(
     undefined
+  );
+  const [showGdprDialog, setShowGdprDialog] = useState(false);
+  const [formSubmitData, setFormSubmitData] = useState<null | typeof formData>(
+    null
   );
 
   // Combined form data for patient
@@ -85,14 +90,28 @@ export default function AddPatientForm() {
       return;
     }
 
+    // Instead of submitting right away, store the form data and show the GDPR dialog
+    setFormSubmitData(formData);
+    setShowGdprDialog(true);
+  };
+
+  const handleGdprConfirm = async () => {
+    if (!formSubmitData) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      // Create a copy of form data
-      const formDataToSubmit = { ...formData };
-
       // Send request to patient creation endpoint
+      // Add GDPR consent fields to the submission
+      const formDataToSubmit = {
+        ...formSubmitData,
+        gdpr_accepted: true,
+        gdpr_accepted_date: new Date().toISOString(),
+        tos_accepted: true,
+        tos_accepted_date: new Date().toISOString(),
+      };
+
       await api.post("/patients", formDataToSubmit);
 
       setSuccess("Patient created successfully!");
@@ -137,6 +156,7 @@ export default function AddPatientForm() {
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setShowGdprDialog(false);
     }
   };
 
@@ -355,6 +375,13 @@ export default function AddPatientForm() {
           </form>
         </CardContent>
       </Card>
+
+      <GdprConsentDialog
+        open={showGdprDialog}
+        onOpenChange={setShowGdprDialog}
+        onConfirm={handleGdprConfirm}
+        patientData={formSubmitData} // Pass the patient data to the dialog
+      />
     </div>
   );
 }
