@@ -78,22 +78,47 @@ export default function ServiceFormCreator() {
     value: string | boolean | string[] | number | undefined
   ) => {
     const updatedQuestions = [...questions];
-    updatedQuestions[index] = { ...updatedQuestions[index], [field]: value };
 
-    // Reset options when changing question type
-    if (field === "type" && value !== "MULTIPLE_CHOICE") {
-      delete updatedQuestions[index].options;
-    }
+    // Special handling for scale bounds
+    if (field === "lowerBound" || field === "upperBound") {
+      // If value is empty, undefined, or not a valid number, use default values
+      let numericValue =
+        typeof value === "number" ? value : parseInt(String(value));
 
-    // Initialize options array for multiple choice
-    if (field === "type" && value === "MULTIPLE_CHOICE") {
-      updatedQuestions[index].options = [""];
-    }
+      if (isNaN(numericValue)) {
+        numericValue = field === "lowerBound" ? 1 : 5; // Default values
+      }
 
-    // Initialize scale bounds
-    if (field === "type" && value === "SCALE") {
-      updatedQuestions[index].lowerBound = 1;
-      updatedQuestions[index].upperBound = 5;
+      // Ensure bounds are within reasonable limits
+      if (field === "lowerBound") {
+        numericValue = Math.max(0, Math.min(numericValue, 10)); // Minimum between 0-10
+      } else {
+        numericValue = Math.max(1, Math.min(numericValue, 10)); // Maximum between 1-10
+      }
+
+      updatedQuestions[index] = {
+        ...updatedQuestions[index],
+        [field]: numericValue,
+      };
+    } else {
+      // Original logic for other fields
+      updatedQuestions[index] = { ...updatedQuestions[index], [field]: value };
+
+      // Reset options when changing question type
+      if (field === "type" && value !== "MULTIPLE_CHOICE") {
+        delete updatedQuestions[index].options;
+      }
+
+      // Initialize options array for multiple choice
+      if (field === "type" && value === "MULTIPLE_CHOICE") {
+        updatedQuestions[index].options = [""];
+      }
+
+      // Initialize scale bounds
+      if (field === "type" && value === "SCALE") {
+        updatedQuestions[index].lowerBound = 1;
+        updatedQuestions[index].upperBound = 5;
+      }
     }
 
     setQuestions(updatedQuestions);
@@ -153,6 +178,16 @@ export default function ServiceFormCreator() {
         toast.error("Multiple choice questions must have at least two options");
         return;
       }
+
+      // Ensure scale questions have proper min/max values
+      if (question.type === "SCALE") {
+        if (question.lowerBound === undefined || question.lowerBound === null) {
+          question.lowerBound = 1; // Default minimum
+        }
+        if (question.upperBound === undefined || question.upperBound === null) {
+          question.upperBound = 5; // Default maximum
+        }
+      }
     }
 
     try {
@@ -164,8 +199,8 @@ export default function ServiceFormCreator() {
         type: question.type,
         required: question.required,
         options: question.options,
-        minValue: question.lowerBound,
-        maxValue: question.upperBound,
+        minValue: question.type === "SCALE" ? question.lowerBound : undefined,
+        maxValue: question.type === "SCALE" ? question.upperBound : undefined,
       }));
 
       const response = await api.post("/forms", {
@@ -373,13 +408,22 @@ export default function ServiceFormCreator() {
                               min="0"
                               max="10"
                               value={question.lowerBound || 1}
-                              onChange={(e) =>
-                                updateQuestion(
-                                  index,
-                                  "lowerBound",
-                                  parseInt(e.target.value)
-                                )
-                              }
+                              onChange={(e) => {
+                                const val =
+                                  e.target.value === ""
+                                    ? 1
+                                    : parseInt(e.target.value);
+                                updateQuestion(index, "lowerBound", val);
+                              }}
+                              onBlur={(e) => {
+                                // On blur, ensure we have a valid number
+                                if (
+                                  e.target.value === "" ||
+                                  isNaN(parseInt(e.target.value))
+                                ) {
+                                  updateQuestion(index, "lowerBound", 1);
+                                }
+                              }}
                             />
                           </div>
                           <div>
@@ -392,13 +436,22 @@ export default function ServiceFormCreator() {
                               min="1"
                               max="10"
                               value={question.upperBound || 5}
-                              onChange={(e) =>
-                                updateQuestion(
-                                  index,
-                                  "upperBound",
-                                  parseInt(e.target.value)
-                                )
-                              }
+                              onChange={(e) => {
+                                const val =
+                                  e.target.value === ""
+                                    ? 5
+                                    : parseInt(e.target.value);
+                                updateQuestion(index, "upperBound", val);
+                              }}
+                              onBlur={(e) => {
+                                // On blur, ensure we have a valid number
+                                if (
+                                  e.target.value === "" ||
+                                  isNaN(parseInt(e.target.value))
+                                ) {
+                                  updateQuestion(index, "upperBound", 5);
+                                }
+                              }}
                             />
                           </div>
                         </div>
