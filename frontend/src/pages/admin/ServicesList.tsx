@@ -242,7 +242,9 @@ export default function ServicesList() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Services Management</h1>
         <div className="space-x-2">
-          <Button variant="default">New Service</Button>
+          <Link to="/admin/services/new">
+            <Button variant="default">New Service</Button>
+          </Link>
           <Link to="/admin">
             <Button variant="outline">Back to Dashboard</Button>
           </Link>
@@ -260,7 +262,7 @@ export default function ServicesList() {
             <DataTable
               columns={columns}
               data={services}
-              searchableColumns={searchableColumns} // Pass searchable columns
+              searchableColumns={searchableColumns}
               filterableColumns={filterableColumns}
               pagination={true}
             />

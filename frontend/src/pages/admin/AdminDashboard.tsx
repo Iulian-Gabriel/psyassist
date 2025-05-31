@@ -183,6 +183,26 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* New Card for Appointment Scheduling - added after the Services card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Appointment Scheduling</CardTitle>
+            <CardDescription>View and manage appointments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Link to="/admin/appointments">
+                <Button className="w-full">Appointment Calendar</Button>
+              </Link>
+              <Link to="/admin/service-requests">
+                <Button className="w-full" variant="outline">
+                  View Service Requests
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Assessment Forms</CardTitle>

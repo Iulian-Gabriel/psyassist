@@ -23,13 +23,16 @@ import EditPatientForm from "./components/forms/EditPatientForm";
 import PatientsList from "./pages/admin/PatientsList";
 
 // Replace these imports
-import PsychologicalForms from "./components/forms/PsychologicalForms";
-import ServiceFormCreator from "./components/forms/ServiceFormCreator";
 import ServiceFormView from "./components/forms/ServiceFormView";
 import EditPsychologicalForm from "./components/forms/EditPsychologicalForm";
 
 // Add this import with your other page imports
 import AddPatientForm from "./pages/admin/AddPatientForm";
+import AddServiceForm from "./pages/admin/AddServiceForm";
+import AppointmentCalendar from "./pages/receptionist/AppointmentCalendar";
+import ServiceRequestsList from "./pages/admin/ServiceRequestsList";
+import PsychologicalForms from "./components/forms/PsychologicalForms";
+import ServiceFormCreator from "./components/forms/ServiceFormCreator";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -221,14 +224,11 @@ function App() {
           <Route path="/admin/services" element={<ServicesList />} />
           <Route path="/admin/add-employee" element={<AddEmployeeForm />} />
           <Route path="/admin/add-patient" element={<AddPatientForm />} />
-        </Route>
-
-        {/* Psychological Forms Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/psychological-forms" element={<PsychologicalForms />} />
+          <Route path="/admin/services/new" element={<AddServiceForm />} />
+          <Route path="/admin/appointments" element={<AppointmentCalendar />} />
           <Route
-            path="/psychological-forms/create"
-            element={<ServiceFormCreator />}
+            path="/admin/service-requests"
+            element={<ServiceRequestsList />}
           />
           <Route
             path="/psychological-forms/:id"
@@ -236,26 +236,16 @@ function App() {
           />
           <Route
             path="/psychological-forms/:id/edit"
-            element={
-              <ProtectedRoute>
-                <EditPsychologicalForm />
-              </ProtectedRoute>
-            }
+            element={<EditPsychologicalForm />}
+          />
+          <Route path="/psychological-forms" element={<PsychologicalForms />} />
+          <Route
+            path="/psychological-forms/create"
+            element={<ServiceFormCreator />}
           />
         </Route>
 
         {/* Optional: Catch-all route for 404 Not Found */}
-        <Route
-          path="*"
-          element={
-            <div>
-              <h1 className="text-2xl font-bold">404 - Page Not Found</h1>
-              <Link to={isAuthenticated ? "/dashboard" : "/"}>
-                <Button variant="link">Go Home</Button>
-              </Link>
-            </div>
-          }
-        />
       </Routes>
     </Layout>
   );

@@ -3,8 +3,14 @@ import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-const ProtectedRoute: React.FC<{ requiresAdmin?: boolean }> = ({
+interface ProtectedRouteProps {
+  requiresAdmin?: boolean;
+  children?: React.ReactNode; // Add this line to support children
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiresAdmin = false,
+  children,
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
@@ -18,11 +24,12 @@ const ProtectedRoute: React.FC<{ requiresAdmin?: boolean }> = ({
     );
   }
 
+  // Check if user is authenticated
   if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Check for admin-only routes
+  // Additional check for admin routes
   if (requiresAdmin && !isAdmin) {
     return (
       <Navigate
@@ -33,7 +40,8 @@ const ProtectedRoute: React.FC<{ requiresAdmin?: boolean }> = ({
     );
   }
 
-  return <Outlet />;
+  // Return either children or Outlet (for nested routes)
+  return children ? <>{children}</> : <Outlet />;
 };
 
 export default ProtectedRoute;
