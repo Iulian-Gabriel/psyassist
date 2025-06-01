@@ -3,8 +3,20 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "backend",
   "workspaceFolder": "/workspace",
-  "forwardPorts": [3000, "${containerEnv:PORT}", 5432],
+  "forwardPorts": [3000, 8000, 5432],
   "postCreateCommand": "cd /workspace/backend && npm install && npx prisma generate && npx prisma db push --skip-generate && npm run setup:db",
+  "containerEnv": {
+    "NODE_ENV": "${localEnv:NODE_ENV:development}",
+    "PORT": "${localEnv:PORT:8000}",
+    "POSTGRES_USER": "${localEnv:POSTGRES_USER:postgres}",
+    "POSTGRES_PASSWORD": "${localEnv:POSTGRES_PASSWORD:password}",
+    "POSTGRES_DB": "${localEnv:POSTGRES_DB:psyassist}",
+    "ACCESS_TOKEN_SECRET": "${localEnv:ACCESS_TOKEN_SECRET}",
+    "ACCESS_TOKEN_EXPIRE_MINUTES": "${localEnv:ACCESS_TOKEN_EXPIRE_MINUTES:15}",
+    "REFRESH_TOKEN_SECRET": "${localEnv:REFRESH_TOKEN_SECRET}",
+    "REFRESH_TOKEN_EXPIRE_MINUTES": "${localEnv:REFRESH_TOKEN_EXPIRE_MINUTES:10080}",
+    "FRONTEND_URL": "${localEnv:FRONTEND_URL:http://localhost:3000}"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
