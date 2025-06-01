@@ -85,6 +85,10 @@ model Patient {
   user_id                 Int                  @unique
   emergency_contact_name  String?              @db.VarChar(200)
   emergency_contact_phone String?              @db.VarChar(20)
+  tos_accepted            Boolean              @default(false)
+  gdpr_accepted           Boolean              @default(false)
+  tos_accepted_date       DateTime?            @db.Timestamp(3)
+  gdpr_accepted_date      DateTime?            @db.Timestamp(3)
   created_at              DateTime             @default(now()) @db.Timestamp(6)
   updated_at              DateTime             @default(now()) @db.Timestamp(6)
   user                    User                 @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
@@ -200,8 +204,8 @@ model TestTemplateVersion {
   test_template_id         Int?
   version                  Int?
   created_at               DateTime       @default(now()) @db.Timestamp(6)
-  questionsJson            Json?
-  testInstances            TestInstance[] // Actually added as a relation now
+  questionsJson            Json?          @db.Json
+  testInstances            TestInstance[]
   testTemplate             TestTemplate?  @relation(fields: [test_template_id], references: [test_template_id])
 
   @@map("TEST_TEMPLATE_VERSION")

@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: psyassist-postgres
+    environment:
+      POSTGRES_DB: Psyassist
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lol1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - psyassist-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: psyassist-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@psyassist.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    networks:
+      - psyassist-network
+
+volumes:
+  postgres_data:
+
+networks:
+  psyassist-network:
+    driver: bridge

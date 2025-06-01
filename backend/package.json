@@ -2,7 +2,10 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn src/server.ts"
+    "dev": "ts-node-dev --respawn src/server.ts",
+    "init:db": "npx tsx src/utils/initDb.ts",
+    "create:admin": "npx tsx src/scripts/createAdmin.ts",
+    "setup:db": "npm run init:db && npm run create:admin"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
@@ -19,6 +22,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "tsx": "^4.0.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",

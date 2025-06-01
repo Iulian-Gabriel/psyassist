@@ -1,0 +1,35 @@
+{
+  "name": "PsyAssist-Codespace",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "backend",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [3000, "${containerEnv:PORT}", 5432],
+  "postCreateCommand": "cd /workspace/backend && npm install && npx prisma generate && npx prisma db push --skip-generate && npm run setup:db",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "Prisma.prisma",
+        "bradlc.vscode-tailwindcss",
+        "mhutchie.git-graph",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "files.eol": "\n",
+        "prisma.formatOnSave": true,
+        "tailwindCSS.includeLanguages": {
+          "typescript": "javascript",
+          "typescriptreact": "javascript"
+        },
+        "editor.quickSuggestions": {
+          "strings": true
+        }
+      }
+    }
+  },
+  "remoteUser": "node"
+}

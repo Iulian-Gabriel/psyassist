@@ -13,3 +13,4 @@ frontend/.env.*
 
 backend/dist
 frontend/dist
+.devcontainer/.env
