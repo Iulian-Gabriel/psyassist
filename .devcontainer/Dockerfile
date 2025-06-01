@@ -17,13 +17,12 @@ WORKDIR /workspace
 USER node
 
 # Copy package files first (for better Docker layer caching)
-# Since build context is parent directory, paths are relative to that
 COPY --chown=node:node backend/package*.json /workspace/backend/
 COPY --chown=node:node frontend/package*.json /workspace/frontend/
 
-# Install dependencies in the container (Linux architecture)
-RUN cd /workspace/backend && npm ci --only=production=false
-RUN cd /workspace/frontend && npm ci --only=production=false
+# Install dependencies and generate lock files
+RUN cd /workspace/backend && npm install
+RUN cd /workspace/frontend && npm install
 
 # Keep container running
 CMD ["sh", "-c", "while sleep 1000; do :; done"]
