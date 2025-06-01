@@ -46,7 +46,7 @@ services:
       - "3000:5173"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_URL: ${CODESPACE_NAME:+https://${CODESPACE_NAME}-${PORT:-4000}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}/api}
+      VITE_API_URL: https://${CODESPACE_NAME:-localhost}-4000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-github.dev}/api
       VITE_API_URL_FALLBACK: http://localhost:${PORT:-4000}/api
     depends_on:
       - backend
