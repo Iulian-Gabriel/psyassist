@@ -3,11 +3,11 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "backend",
   "workspaceFolder": "/workspace",
-  "forwardPorts": [3000, 8000, 5432],
+  "forwardPorts": [3000, 4000, 5432],
   "postCreateCommand": "cd /workspace/backend && npm install && npx prisma generate && npx prisma db push --skip-generate && npm run setup:db",
   "containerEnv": {
     "NODE_ENV": "${localEnv:NODE_ENV:development}",
-    "PORT": "${localEnv:PORT:8000}",
+    "PORT": "${localEnv:PORT:4000}",
     "POSTGRES_USER": "${localEnv:POSTGRES_USER:postgres}",
     "POSTGRES_PASSWORD": "${localEnv:POSTGRES_PASSWORD:password}",
     "POSTGRES_DB": "${localEnv:POSTGRES_DB:psyassist}",
