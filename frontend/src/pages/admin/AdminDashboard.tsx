@@ -11,7 +11,35 @@ import {
 } from "@/components/ui/card";
 import { fetchAdminStats } from "@/services/adminService";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { Users, UserCog, Activity } from "lucide-react"; // Added UserCircle icon
+import {
+  Users,
+  UserCog,
+  Activity,
+  ClipboardList,
+  MessageSquare,
+  FileText,
+  FileCheck,
+  Calendar,
+  UserRound,
+  ScrollText,
+  Clipboard,
+  FileQuestion,
+  Star,
+  Files,
+} from "lucide-react";
+
+// First, let's create a helper component for not-implemented cards
+const NotImplementedCard = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  return (
+    <Card className={`bg-red-50 border-red-100 ${className}`}>{children}</Card>
+  );
+};
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -123,73 +151,151 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Doctor Module Section */}
+      <h2 className="text-2xl font-bold mb-4">Doctor Functions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Assessment Forms Card - Implemented */}
         <Card>
-          <CardHeader>
-            <CardTitle>Users Management</CardTitle>
-            <CardDescription>Manage users and their roles</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Assessment Forms
+            </CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Manage psychological assessment forms
+            </p>
             <div className="space-y-2">
-              <Link to="/admin/users">
-                <Button className="w-full">View All Users</Button>
+              <Link to="/psychological-forms">
+                <Button className="w-full">View All Forms</Button>
+              </Link>
+              <Link to="/psychological-forms/create">
+                <Button className="w-full" variant="outline">
+                  Create New Form
+                </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Employee Management</CardTitle>
-            <CardDescription>Manage doctors and staff</CardDescription>
+        {/* Patient Tests Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Patient Tests</CardTitle>
+            <ScrollText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Manage psychological tests for patients
+            </p>
             <div className="space-y-2">
-              <Link to="/admin/employees">
-                <Button className="w-full">View All Employees</Button>
+              <Link to="/admin/doctor/tests/assign">
+                <Button className="w-full">Assign Tests to Patients</Button>
+              </Link>
+              <Link to="/admin/doctor/tests/results">
+                <Button className="w-full" variant="outline">
+                  View Test Results
+                </Button>
               </Link>
             </div>
           </CardContent>
-        </Card>
+        </NotImplementedCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Services</CardTitle>
-            <CardDescription>
-              Manage consultations and group services
-            </CardDescription>
+        {/* Patient Notes Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Patient Notes</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Create and manage patient notes
+            </p>
             <div className="space-y-2">
-              <Link to="/admin/services">
-                <Button className="w-full">View All Services</Button>
+              <Link to="/admin/doctor/notes">
+                <Button className="w-full">View All Notes</Button>
+              </Link>
+              <Link to="/admin/doctor/notes/create">
+                <Button className="w-full" variant="outline">
+                  Create New Note
+                </Button>
+              </Link>
+              <Link to="/admin/doctor/notes/appointment">
+                <Button className="w-full" variant="outline">
+                  Appointment Notes
+                </Button>
               </Link>
             </div>
           </CardContent>
-        </Card>
+        </NotImplementedCard>
 
-        {/* Patient Management Card - added in the main grid with other cards */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Management</CardTitle>
-            <CardDescription>Manage patients and their records</CardDescription>
+        {/* Medical Notices Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Medical Notices
+            </CardTitle>
+            <FileCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Create and manage official notices
+            </p>
             <div className="space-y-2">
-              <Link to="/admin/patients">
-                <Button className="w-full">View All Patients</Button>
+              <Link to="/admin/doctor/notices">
+                <Button className="w-full">View All Notices</Button>
+              </Link>
+              <Link to="/admin/doctor/notices/create">
+                <Button className="w-full" variant="outline">
+                  Issue New Notice
+                </Button>
               </Link>
             </div>
           </CardContent>
-        </Card>
+        </NotImplementedCard>
 
-        {/* New Card for Appointment Scheduling - added after the Services card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Appointment Scheduling</CardTitle>
-            <CardDescription>View and manage appointments</CardDescription>
+        {/* Patient Feedback Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Patient Feedback
+            </CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              View feedback from patients
+            </p>
+            <div className="space-y-2">
+              <Link to="/admin/doctor/feedback">
+                <Button className="w-full">View All Feedback</Button>
+              </Link>
+              <Link to="/admin/doctor/feedback/request">
+                <Button className="w-full" variant="outline">
+                  Request New Feedback
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </NotImplementedCard>
+      </div>
+
+      {/* Receptionist Section - These are implemented based on your file structure */}
+      <h2 className="text-2xl font-bold mb-4">Receptionist Functions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Appointment Calendar Card - Implemented */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Appointment Scheduling
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              View and manage patient appointments
+            </p>
             <div className="space-y-2">
               <Link to="/admin/appointments">
                 <Button className="w-full">Appointment Calendar</Button>
@@ -203,26 +309,245 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Patient Management Card - Implemented */}
         <Card>
-          <CardHeader>
-            <CardTitle>Assessment Forms</CardTitle>
-            <CardDescription>
-              Manage psychological assessment forms
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Patient Management
+            </CardTitle>
+            <UserRound className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Manage patients and their records
+            </p>
             <div className="space-y-2">
-              <Link to="/psychological-forms">
-                <Button className="w-full">View All Forms</Button>
+              <Link to="/admin/patients">
+                <Button className="w-full">View All Patients</Button>
               </Link>
-              <Link to="/psychological-forms/create">
+              <Link to="/admin/add-patient">
                 <Button className="w-full" variant="outline">
-                  Create New Form
+                  Register New Patient
                 </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
+
+        {/* Services Management Card - Implemented */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Services</CardTitle>
+            <ScrollText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Manage consultations and group services
+            </p>
+            <div className="space-y-2">
+              <Link to="/admin/services">
+                <Button className="w-full">View All Services</Button>
+              </Link>
+              <Link to="/admin/services/new">
+                <Button className="w-full" variant="outline">
+                  Add New Service
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Admin Section - Both are implemented */}
+      <h2 className="text-2xl font-bold mb-4">Administration</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Users Management Card - Implemented */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Users Management
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Manage users and their roles
+            </p>
+            <div className="space-y-2">
+              <Link to="/admin/users">
+                <Button className="w-full">View All Users</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Employee Management Card - Implemented */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Employee Management
+            </CardTitle>
+            <UserCog className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Manage doctors and staff
+            </p>
+            <div className="space-y-2">
+              <Link to="/admin/employees">
+                <Button className="w-full">View All Employees</Button>
+              </Link>
+              <Link to="/admin/employees/new">
+                <Button className="w-full" variant="outline">
+                  Add New Employee
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Patient Functions Section - All Not Implemented except Request Appointment */}
+      <h2 className="text-2xl font-bold mb-4">Patient Functions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Psychological Tests Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Psychological Tests
+            </CardTitle>
+            <FileQuestion className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Complete psychological tests assigned by your doctor
+            </p>
+            <div className="space-y-2">
+              <Link to="/patient/tests/assigned">
+                <Button className="w-full">Pending Tests</Button>
+              </Link>
+              <Link to="/patient/tests/completed">
+                <Button className="w-full" variant="outline">
+                  Completed Tests
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </NotImplementedCard>
+
+        {/* Initial Assessment Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Initial Assessment
+            </CardTitle>
+            <Clipboard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Complete your initial assessment form
+            </p>
+            <div className="space-y-2">
+              <Link to="/patient/initial-form">
+                <Button className="w-full">Initial Assessment Form</Button>
+              </Link>
+              <Link to="/patient/initial-form/view">
+                <Button className="w-full" variant="outline">
+                  View Your Responses
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </NotImplementedCard>
+
+        {/* Feedback Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Provide Feedback
+            </CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Give feedback about your experience
+            </p>
+            <div className="space-y-2">
+              <Link to="/patient/feedback/doctor">
+                <Button className="w-full">Rate Your Doctor</Button>
+              </Link>
+              <Link to="/patient/feedback/service">
+                <Button className="w-full" variant="outline">
+                  Rate Your Service
+                </Button>
+              </Link>
+              <Link to="/patient/feedback/clinic">
+                <Button className="w-full" variant="outline">
+                  Clinic Feedback
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </NotImplementedCard>
+
+        {/* My Documents Card - Not Implemented */}
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">My Documents</CardTitle>
+            <Files className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Access your medical documents and notices
+            </p>
+            <div className="space-y-2">
+              <Link to="/patient/documents/tests">
+                <Button className="w-full">Test Results</Button>
+              </Link>
+              <Link to="/patient/documents/notices">
+                <Button className="w-full" variant="outline">
+                  Doctor Notices
+                </Button>
+              </Link>
+              <Link to="/patient/documents/forms">
+                <Button className="w-full" variant="outline">
+                  Completed Forms
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </NotImplementedCard>
+
+        {/* Appointment Requests Card - Implemented */}
+
+        <NotImplementedCard>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Appointment Requests
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Request and manage your appointments
+            </p>
+            <div className="space-y-2">
+              <Link to="/patient/appointments/request">
+                <Button className="w-full">Request Appointment</Button>
+              </Link>
+              <Link to="/patient/appointments/history">
+                <Button className="w-full" variant="outline">
+                  Appointment History
+                </Button>
+              </Link>
+              <Link to="/patient/appointments/upcoming">
+                <Button className="w-full" variant="outline">
+                  Upcoming Appointments
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </NotImplementedCard>
       </div>
     </div>
   );

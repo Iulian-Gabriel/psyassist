@@ -1065,7 +1065,7 @@ export default function AppointmentCalendar() {
             ) : (
               <div>
                 <Label className="mb-2 block">Group Participants</Label>
-                <div className="border rounded-md p-3 max-h-40 overflow-y-auto mb-2">
+                <div className="border rounded-md p-3 h-[120px] overflow-y-auto mb-2 select-none">
                   {selectedPatients.length === 0 ? (
                     <p className="text-muted-foreground text-sm">
                       No patients selected
@@ -1081,7 +1081,7 @@ export default function AppointmentCalendar() {
                             key={patientId}
                             className="flex justify-between items-center text-sm"
                           >
-                            <span>
+                            <span className="select-none">
                               {patient?.user.first_name}{" "}
                               {patient?.user.last_name}
                             </span>
@@ -1104,6 +1104,7 @@ export default function AppointmentCalendar() {
                 </div>
 
                 <Select
+                  value="" // Add this line to keep the value empty
                   onValueChange={(value) => {
                     if (!selectedPatients.includes(value)) {
                       setSelectedPatients((prev) => [...prev, value]);
@@ -1199,7 +1200,7 @@ export default function AppointmentCalendar() {
         </DialogContent>
       </Dialog>
 
-      <style jsx global>
+      <style>
         {`
           .rbc-event {
             display: flex !important;
