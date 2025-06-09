@@ -33,6 +33,9 @@ import AppointmentCalendar from "./pages/receptionist/AppointmentCalendar";
 import ServiceRequestsList from "./pages/admin/ServiceRequestsList";
 import PsychologicalForms from "./components/forms/PsychologicalForms";
 import ServiceFormCreator from "./components/forms/ServiceFormCreator";
+import PatientTests from "./pages/doctor/PatientTests";
+import AssignTest from "./pages/doctor/AssignTest";
+import TestResult from "./pages/doctor/TestResult";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -243,6 +246,9 @@ function App() {
             path="/psychological-forms/create"
             element={<ServiceFormCreator />}
           />
+          <Route path="/patient-tests" element={<PatientTests />} />
+          <Route path="/patient-tests/assign" element={<AssignTest />} />
+          <Route path="/patient-tests/:id" element={<TestResult />} />
         </Route>
 
         {/* Optional: Catch-all route for 404 Not Found */}

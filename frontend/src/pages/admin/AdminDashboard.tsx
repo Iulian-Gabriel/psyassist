@@ -26,6 +26,8 @@ import {
   FileQuestion,
   Star,
   Files,
+  Eye,
+  PlusCircle,
 } from "lucide-react";
 
 // First, let's create a helper component for not-implemented cards
@@ -180,7 +182,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Patient Tests Card - Not Implemented */}
-        <NotImplementedCard>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Patient Tests</CardTitle>
             <ScrollText className="h-4 w-4 text-muted-foreground" />
@@ -190,17 +192,29 @@ export default function AdminDashboard() {
               Manage psychological tests for patients
             </p>
             <div className="space-y-2">
-              <Link to="/admin/doctor/tests/assign">
-                <Button className="w-full">Assign Tests to Patients</Button>
+              <Link to="/patient-tests">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Patient Tests
+                </Button>
               </Link>
-              <Link to="/admin/doctor/tests/results">
-                <Button className="w-full" variant="outline">
-                  View Test Results
+              <Link to="/patient-tests/assign">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Assign New Test
                 </Button>
               </Link>
             </div>
           </CardContent>
-        </NotImplementedCard>
+        </Card>
 
         {/* Patient Notes Card - Not Implemented */}
         <NotImplementedCard>

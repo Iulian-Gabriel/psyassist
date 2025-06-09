@@ -12,6 +12,7 @@ import adminRoutes from "./routes/api/adminRoutes";
 import formsRoutes from "./routes/api/formsRoutes";
 import patientRoutes from "./routes/api/patientRoutes"; // Add this import
 import serviceRoutes from "./routes/api/serviceRoutes"; // Import service routes
+import testsRoutes from "./routes/api/testsRoutes"; // Assuming you have a tests route, adjust as needed
 // Import other routes as needed
 
 const app = express();
@@ -43,6 +44,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/forms", formsRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/services", serviceRoutes); // Add this line with the other routes
+app.use("/api/tests", testsRoutes); // Assuming you have a tests route, adjust as needed
 // ... use other routes
 
 // --- Error Handling Middleware ---

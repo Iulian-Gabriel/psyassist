@@ -17,7 +17,7 @@ router.post(
 router.get(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorizeAdmin, // This middleware ensures only admins can access
   patientController.getAllPatients
 );
 

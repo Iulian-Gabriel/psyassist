@@ -5,7 +5,8 @@ import patientRoutes from "./patientRoutes";
 import employeeRoutes from "./employeeRoutes";
 import formsRoutes from "./formsRoutes";
 import adminRoutes from "./adminRoutes";
-import serviceRoutes from "./serviceRoutes"; // Add this line
+import serviceRoutes from "./serviceRoutes";
+import testsRoutes from "./testsRoutes"; // Add this line
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.use("/patients", patientRoutes);
 router.use("/employees", employeeRoutes);
 router.use("/forms", formsRoutes);
 router.use("/admin", adminRoutes);
-router.use("/services", serviceRoutes); // Add this line
+router.use("/services", serviceRoutes);
+router.use("/tests", testsRoutes); // Add this line
 
 export default router;

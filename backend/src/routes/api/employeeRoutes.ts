@@ -1,5 +1,5 @@
 import express from "express";
-import * as employeeController from "../../controllers/employeeController";
+import * as employeesController from "../../controllers/employeeController";
 import { authenticateToken } from "../../middleware/auth";
 import { authorizeAdmin } from "../../middleware/authorize";
 
@@ -10,45 +10,53 @@ router.get(
   "/",
   authenticateToken,
   authorizeAdmin,
-  employeeController.getAllEmployees
+  employeesController.getAllEmployees
 );
 router.post(
   "/admin",
   authenticateToken,
   authorizeAdmin,
-  employeeController.createAdmin
+  employeesController.createAdmin
 );
 router.post(
   "/doctor",
   authenticateToken,
   authorizeAdmin,
-  employeeController.createDoctor
+  employeesController.createDoctor
 );
+
+router.get(
+  "/current",
+  authenticateToken,
+  employeesController.getCurrentEmployee
+);
+
 router.get(
   "/:id",
   authenticateToken,
   authorizeAdmin,
-  employeeController.getEmployeeById
+  employeesController.getEmployeeById
 );
 router.patch(
   "/:id/deactivate",
   authenticateToken,
   authorizeAdmin,
-  employeeController.deactivateEmployee
+  employeesController.deactivateEmployee
 );
 // Add this to your employee routes
 router.put(
   "/:id",
   authenticateToken,
   authorizeAdmin,
-  employeeController.updateEmployee
+  employeesController.updateEmployee
 );
 // Add reactivate route
 router.patch(
   "/:id/reactivate",
   authenticateToken,
   authorizeAdmin,
-  employeeController.reactivateEmployee
+  employeesController.reactivateEmployee
 );
+// Add this to your employeeRoutes.ts
 
 export default router;

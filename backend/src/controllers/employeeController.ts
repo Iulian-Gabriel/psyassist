@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as employeeService from "../services/employeeService";
 import * as userService from "../services/userService";
 import prisma from "../utils/prisma";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 // Get all employees (for admin view)
 export const getAllEmployees = async (
@@ -427,5 +428,51 @@ export const updateEmployee = async (
   } catch (error) {
     console.error("Error updating employee:", error);
     res.status(500).json({ message: "Failed to update employee" });
+  }
+};
+
+// Add this to your employeesController.ts
+export const getCurrentEmployee = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Not authenticated" });
+      return;
+    }
+
+    // Convert userId to number if it's a string
+    const userIdNumber =
+      typeof userId === "string" ? parseInt(userId, 10) : userId;
+
+    // Get the employee data for the current user
+    const employee = await prisma.employee.findUnique({
+      where: { user_id: userIdNumber },
+      include: {
+        // Check if your Doctor model is related to Employee correctly
+        // The field name must match what's defined in your Prisma schema
+        doctor: true,
+      },
+    });
+
+    if (!employee) {
+      res.status(404).json({ message: "Employee record not found" });
+      return;
+    }
+
+    // Check if doctor property exists before accessing it
+    const doctorId = employee.doctor ? employee.doctor.doctor_id : null;
+
+    // Return employee data with doctor ID if applicable
+    res.json({
+      employeeId: employee.employee_id,
+      doctorId: doctorId,
+      jobTitle: employee.job_title,
+    });
+  } catch (error) {
+    console.error("Error getting current employee:", error);
+    res.status(500).json({ message: "Failed to fetch employee data" });
   }
 };
