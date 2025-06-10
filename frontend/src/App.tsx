@@ -36,6 +36,7 @@ import ServiceFormCreator from "./components/forms/ServiceFormCreator";
 import PatientTests from "./pages/doctor/PatientTests";
 import AssignTest from "./pages/doctor/AssignTest";
 import TestResult from "./pages/doctor/TestResult";
+import PatientNotes from "./pages/doctor/PatientNotes"; // Import the new component
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -205,6 +206,8 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/doctor/patient-notes" element={<PatientNotes />} />{" "}
+          {/* New route for patient notes */}
           {/* Other regular protected routes */}
         </Route>
 

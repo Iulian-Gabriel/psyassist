@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +46,7 @@ const NotImplementedCard = ({
 export default function AdminDashboard() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin");
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState<{
     totalUsers: number;
@@ -216,33 +217,27 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Patient Notes Card - Not Implemented */}
-        <NotImplementedCard>
+        {/* Patient Notes Card - Implemented */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Patient Notes</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">
-              Create and manage patient notes
+            <div className="text-2xl font-bold">Patient Notes</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Create and manage notes for patient appointments
             </p>
-            <div className="space-y-2">
-              <Link to="/admin/doctor/notes">
-                <Button className="w-full">View All Notes</Button>
-              </Link>
-              <Link to="/admin/doctor/notes/create">
-                <Button className="w-full" variant="outline">
-                  Create New Note
-                </Button>
-              </Link>
-              <Link to="/admin/doctor/notes/appointment">
-                <Button className="w-full" variant="outline">
-                  Appointment Notes
-                </Button>
-              </Link>
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/doctor/patient-notes")}
+              >
+                View Patient Notes
+              </Button>
             </div>
           </CardContent>
-        </NotImplementedCard>
+        </Card>
 
         {/* Medical Notices Card - Not Implemented */}
         <NotImplementedCard>
