@@ -37,6 +37,9 @@ import PatientTests from "./pages/doctor/PatientTests";
 import AssignTest from "./pages/doctor/AssignTest";
 import TestResult from "./pages/doctor/TestResult";
 import PatientNotes from "./pages/doctor/PatientNotes"; // Import the new component
+import NoticesList from "./pages/doctor/NoticesList";
+import NoticeDetail from "./pages/doctor/NoticeDetail";
+import NoticeForm from "./pages/doctor/NoticeForm";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -208,6 +211,10 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/doctor/patient-notes" element={<PatientNotes />} />{" "}
           {/* New route for patient notes */}
+          <Route path="/doctor/notices" element={<NoticesList />} />
+          <Route path="/doctor/notices/:id" element={<NoticeDetail />} />
+          <Route path="/doctor/notices/create" element={<NoticeForm />} />
+          <Route path="/doctor/notices/edit/:id" element={<NoticeForm />} />
           {/* Other regular protected routes */}
         </Route>
 

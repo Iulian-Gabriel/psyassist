@@ -7,7 +7,8 @@ import formsRoutes from "./formsRoutes";
 import adminRoutes from "./adminRoutes";
 import serviceRoutes from "./serviceRoutes";
 import testsRoutes from "./testsRoutes";
-import notesRoutes from "./notesRoutes"; // Add this line
+import notesRoutes from "./notesRoutes";
+import noticesRoutes from "./noticesRoutes";
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.use("/forms", formsRoutes);
 router.use("/admin", adminRoutes);
 router.use("/services", serviceRoutes);
 router.use("/tests", testsRoutes);
-router.use("/notes", notesRoutes); // Add this line
+router.use("/notes", notesRoutes);
+router.use("/notices", noticesRoutes);
 
 export default router;

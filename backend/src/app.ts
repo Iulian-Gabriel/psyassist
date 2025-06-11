@@ -10,11 +10,11 @@ import userRoutes from "./routes/api/userRoutes";
 import employeeRoutes from "./routes/api/employeeRoutes";
 import adminRoutes from "./routes/api/adminRoutes";
 import formsRoutes from "./routes/api/formsRoutes";
-import patientRoutes from "./routes/api/patientRoutes"; // Add this import
-import serviceRoutes from "./routes/api/serviceRoutes"; // Import service routes
-import testsRoutes from "./routes/api/testsRoutes"; // Assuming you have a tests route, adjust as needed
-import notesRoutes from "./routes/api/notesRoutes"; // Add notes routes
-// Import other routes as needed
+import patientRoutes from "./routes/api/patientRoutes";
+import serviceRoutes from "./routes/api/serviceRoutes";
+import testsRoutes from "./routes/api/testsRoutes";
+import notesRoutes from "./routes/api/notesRoutes";
+import noticesRoutes from "./routes/api/noticesRoutes";
 
 const app = express();
 
@@ -44,10 +44,10 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/forms", formsRoutes);
 app.use("/api/patients", patientRoutes);
-app.use("/api/services", serviceRoutes); // Add this line with the other routes
-app.use("/api/tests", testsRoutes); // Assuming you have a tests route, adjust as needed
-app.use("/api/notes", notesRoutes); // Add the notes routes
-// ... use other routes
+app.use("/api/services", serviceRoutes);
+app.use("/api/tests", testsRoutes);
+app.use("/api/notes", notesRoutes);
+app.use("/api/notices", noticesRoutes);
 
 // --- Error Handling Middleware ---
 // This should generally be placed AFTER your routes

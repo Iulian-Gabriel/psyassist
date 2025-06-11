@@ -239,30 +239,29 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Medical Notices Card - Not Implemented */}
-        <NotImplementedCard>
+        {/* Medical Notices Card - Implemented */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               Medical Notices
             </CardTitle>
-            <FileCheck className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">
-              Create and manage official notices
+            <div className="text-2xl font-bold">Medical Notices</div>
+            <p className="text-xs text-muted-foreground">
+              Create and manage psychological notices for patients
             </p>
-            <div className="space-y-2">
-              <Link to="/admin/doctor/notices">
-                <Button className="w-full">View All Notices</Button>
-              </Link>
-              <Link to="/admin/doctor/notices/create">
-                <Button className="w-full" variant="outline">
-                  Issue New Notice
-                </Button>
-              </Link>
+            <div className="mt-4">
+              <Button
+                onClick={() => navigate("/doctor/notices")}
+                className="w-full"
+              >
+                Manage Notices
+              </Button>
             </div>
           </CardContent>
-        </NotImplementedCard>
+        </Card>
 
         {/* Patient Feedback Card - Not Implemented */}
         <NotImplementedCard>
