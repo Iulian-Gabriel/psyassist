@@ -43,21 +43,17 @@ export const getAllForms = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const forms = testTemplates.map((template) => {
-      // Parse the JSON and extract just the description
-      let description = null;
-      if (template.template_questions) {
-        try {
-          const parsedData = JSON.parse(String(template.template_questions));
-          description = parsedData.description;
-        } catch (e) {
-          console.error("Error parsing template_questions:", e);
-        }
-      }
+      // Prisma already parsed template_questions into an object.
+      // We just need to safely access the 'description' property.
+      const templateData = template.template_questions as {
+        description?: string;
+      } | null;
 
       return {
         form_id: template.test_template_id,
         title: template.name || "Untitled Form",
-        description: description,
+        // Safely access the description from the already-parsed object
+        description: templateData?.description || null,
         created_at: new Date().toISOString(),
         user: {
           first_name: "System",

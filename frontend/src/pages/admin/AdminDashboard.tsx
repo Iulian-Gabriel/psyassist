@@ -18,13 +18,11 @@ import {
   ClipboardList,
   MessageSquare,
   FileText,
-  FileCheck,
   Calendar,
   UserRound,
   ScrollText,
   Clipboard,
   FileQuestion,
-  Star,
   Files,
   Eye,
   PlusCircle,
@@ -469,34 +467,25 @@ export default function AdminDashboard() {
         </NotImplementedCard>
 
         {/* Feedback Card - Not Implemented */}
-        <NotImplementedCard>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Provide Feedback
-            </CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+        <Card>
+          <CardHeader>
+            <CardTitle>Provide Feedback</CardTitle>
+            <CardDescription>
+              Rate services and submit feedback to doctors
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">
-              Give feedback about your experience
-            </p>
-            <div className="space-y-2">
-              <Link to="/patient/feedback/doctor">
-                <Button className="w-full">Rate Your Doctor</Button>
-              </Link>
-              <Link to="/patient/feedback/service">
-                <Button className="w-full" variant="outline">
-                  Rate Your Service
-                </Button>
-              </Link>
-              <Link to="/patient/feedback/clinic">
-                <Button className="w-full" variant="outline">
-                  Clinic Feedback
-                </Button>
-              </Link>
+          <CardContent className="flex justify-between items-center">
+            <div className="space-y-1">
+              <p>Submit feedback for psychological services</p>
+              <p className="text-sm text-muted-foreground">
+                Help us improve with your input
+              </p>
             </div>
+            <Button onClick={() => navigate("/patient/feedback")}>
+              Rate Services
+            </Button>
           </CardContent>
-        </NotImplementedCard>
+        </Card>
 
         {/* My Documents Card - Not Implemented */}
         <NotImplementedCard>

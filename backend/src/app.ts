@@ -15,6 +15,9 @@ import serviceRoutes from "./routes/api/serviceRoutes";
 import testsRoutes from "./routes/api/testsRoutes";
 import notesRoutes from "./routes/api/notesRoutes";
 import noticesRoutes from "./routes/api/noticesRoutes";
+import feedbackRoutes from "./routes/api/feedbackRoutes";
+import serviceRequestRoutes from "./routes/api/serviceRequestRoutes";
+import serviceTypeRoutes from "./routes/api/serviceTypeRoutes";
 
 const app = express();
 
@@ -48,6 +51,9 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/tests", testsRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/notices", noticesRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/service-requests", serviceRequestRoutes);
+app.use("/api/service-types", serviceTypeRoutes);
 
 // --- Error Handling Middleware ---
 // This should generally be placed AFTER your routes

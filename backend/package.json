@@ -9,9 +9,11 @@
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
+    "@tanstack/react-table": "^8.21.3",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
@@ -19,10 +21,10 @@
     "googleapis": "^148.0.0",
     "jsonwebtoken": "^9.0.2",
     "router": "^2.2.0",
-    "zod": "^3.24.2"
+    "zod": "^3.25.64"
   },
   "devDependencies": {
-    "tsx": "^4.0.0",
+    "@faker-js/faker": "^9.8.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
@@ -31,6 +33,7 @@
     "@types/node": "^22.14.0",
     "prisma": "^6.5.0",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.8.3"
   }
 }

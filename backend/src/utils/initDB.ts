@@ -1,5 +1,5 @@
 // src/scripts/initDb.ts
-import prisma from "./prisma";
+import prisma from "../utils/prisma"; // Adjusted path for scripts folder
 import bcrypt from "bcrypt";
 
 async function initializeDatabase() {
@@ -32,6 +32,17 @@ async function initializeDatabase() {
       },
     });
 
+    // --- NEW: Add the Receptionist Role ---
+    const receptionistRole = await prisma.role.upsert({
+      where: { role_name: "receptionist" },
+      update: {},
+      create: {
+        role_name: "receptionist",
+        description:
+          "Clinic staff responsible for scheduling and patient management.",
+      },
+    });
+
     // Create default permissions
     const permissions = [
       { name: "user:read", description: "Can read user data" },
@@ -54,7 +65,7 @@ async function initializeDatabase() {
         },
       });
 
-      // Assign permissions to admin role
+      // Assign all permissions to admin role
       if (adminRole) {
         await prisma.rolePermissions.upsert({
           where: {
@@ -92,9 +103,32 @@ async function initializeDatabase() {
           },
         });
       }
+
+      // --- NEW: Assign permissions to Receptionist role ---
+      if (
+        receptionistRole &&
+        (perm.name === "user:read" ||
+          perm.name === "service:read" ||
+          perm.name === "service:write" ||
+          perm.name === "employee:read")
+      ) {
+        await prisma.rolePermissions.upsert({
+          where: {
+            role_id_permission_id: {
+              role_id: receptionistRole.role_id,
+              permission_id: permission.permission_id,
+            },
+          },
+          update: {},
+          create: {
+            role_id: receptionistRole.role_id,
+            permission_id: permission.permission_id,
+          },
+        });
+      }
     }
 
-    console.log("Database initialized successfully");
+    console.log("Database initialized successfully (with receptionist role)!");
   } catch (error) {
     console.error("Error initializing database:", error);
   } finally {

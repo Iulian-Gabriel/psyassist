@@ -115,7 +115,7 @@ export async function createDoctor(data: DoctorCreateInput): Promise<Doctor> {
 export async function createEmployeeWithRole(
   userData: userService.UserCreateInput,
   employeeData: Omit<EmployeeCreateInput, "user_id">,
-  roleName: "doctor" | "admin",
+  roleName: "doctor" | "admin" | "receptionist",
   doctorData?: Omit<DoctorCreateInput, "employee_id">
 ): Promise<{ user: User; employee: Employee; doctor?: Doctor }> {
   try {

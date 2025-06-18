@@ -30,7 +30,6 @@ import EditPsychologicalForm from "./components/forms/EditPsychologicalForm";
 import AddPatientForm from "./pages/admin/AddPatientForm";
 import AddServiceForm from "./pages/admin/AddServiceForm";
 import AppointmentCalendar from "./pages/receptionist/AppointmentCalendar";
-import ServiceRequestsList from "./pages/admin/ServiceRequestsList";
 import PsychologicalForms from "./components/forms/PsychologicalForms";
 import ServiceFormCreator from "./components/forms/ServiceFormCreator";
 import PatientTests from "./pages/doctor/PatientTests";
@@ -40,6 +39,13 @@ import PatientNotes from "./pages/doctor/PatientNotes"; // Import the new compon
 import NoticesList from "./pages/doctor/NoticesList";
 import NoticeDetail from "./pages/doctor/NoticeDetail";
 import NoticeForm from "./pages/doctor/NoticeForm";
+import ProvideFeedback from "./pages/patient/ProvideFeedback";
+import FeedbackList from "./pages/doctor/FeedbackList";
+import ServiceRequestsList from "./pages/receptionist/ServiceRequestsList";
+import PatientDashboard from "./pages/patient/PatientDashboard";
+import DoctorDashboard from "./pages/doctor/DoctorDashboard";
+import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
+import RequestService from "./pages/patient/RequestService";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -207,7 +213,33 @@ function App() {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
+          {/* Basic dashboard route - redirects based on role */}
           <Route path="/dashboard" element={<Dashboard />} />
+          {/* Role-specific dashboards */}
+          <Route path="/patient" element={<PatientDashboard />} />
+          <Route path="/doctor" element={<DoctorDashboard />} />
+          <Route path="/receptionist" element={<ReceptionistDashboard />} />
+          {/* Patient routes */}
+          <Route path="/patient/dashboard" element={<PatientDashboard />} />
+          <Route
+            path="/patient/appointments/request"
+            element={<RequestService />}
+          />
+          {/* Doctor routes */}
+          <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor/patients" element={<PatientsList />} />
+          <Route path="/doctor/services" element={<ServicesList />} />
+          {/* Receptionist routes */}
+          <Route
+            path="/receptionist/dashboard"
+            element={<ReceptionistDashboard />}
+          />
+          <Route path="/receptionist/patients" element={<PatientsList />} />
+          <Route path="/receptionist/services" element={<ServicesList />} />
+          <Route
+            path="/receptionist/service-requests"
+            element={<ServiceRequestsList />}
+          />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/doctor/patient-notes" element={<PatientNotes />} />{" "}
           {/* New route for patient notes */}
@@ -215,6 +247,9 @@ function App() {
           <Route path="/doctor/notices/:id" element={<NoticeDetail />} />
           <Route path="/doctor/notices/create" element={<NoticeForm />} />
           <Route path="/doctor/notices/edit/:id" element={<NoticeForm />} />
+          <Route path="/patient/feedback" element={<ProvideFeedback />} />
+          <Route path="/patient/feedback/:id" element={<ProvideFeedback />} />
+          <Route path="/doctor/feedback" element={<FeedbackList />} />
           {/* Other regular protected routes */}
         </Route>
 
@@ -259,6 +294,13 @@ function App() {
           <Route path="/patient-tests" element={<PatientTests />} />
           <Route path="/patient-tests/assign" element={<AssignTest />} />
           <Route path="/patient-tests/:id" element={<TestResult />} />
+        </Route>
+
+        <Route element={<ProtectedRoute />}>
+          <Route
+            path="/receptionist/service-requests"
+            element={<ServiceRequestsList />}
+          />
         </Route>
 
         {/* Optional: Catch-all route for 404 Not Found */}

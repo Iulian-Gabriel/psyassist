@@ -1,17 +1,16 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
-import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -20,11 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
 
 interface ServiceType {
-  id: string;
+  service_type_id: number;
   name: string;
   description: string;
 }
@@ -64,6 +65,7 @@ export default function RequestService() {
   useEffect(() => {
     const fetchServiceTypes = async () => {
       try {
+        // Placeholder - you'll need to implement this endpoint
         const response = await api.get("/service-types");
         setServiceTypes(response.data);
       } catch (err) {
@@ -74,6 +76,7 @@ export default function RequestService() {
 
     const fetchDoctors = async () => {
       try {
+        // Reuse your existing doctors endpoint
         const response = await api.get("/doctors");
         setDoctors(response.data);
       } catch (err) {
@@ -185,8 +188,8 @@ export default function RequestService() {
         <CardHeader>
           <CardTitle>Service Request Form</CardTitle>
           <CardDescription>
-            Please provide your preferences and we'll schedule your appointment
-            as soon as possible.
+            Fill out this form to request an appointment with one of our
+            specialists
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -195,18 +198,21 @@ export default function RequestService() {
               <div>
                 <Label htmlFor="service_type_id">Service Type *</Label>
                 <Select
-                  name="service_type_id"
-                  value={formData.service_type_id}
                   onValueChange={(value) =>
                     handleSelectChange("service_type_id", value)
                   }
+                  value={formData.service_type_id}
+                  disabled={loading}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="service_type_id">
                     <SelectValue placeholder="Select a service type" />
                   </SelectTrigger>
                   <SelectContent>
                     {serviceTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
+                      <SelectItem
+                        key={type.service_type_id}
+                        value={String(type.service_type_id)}
+                      >
                         {type.name}
                       </SelectItem>
                     ))}
@@ -219,23 +225,23 @@ export default function RequestService() {
                   Preferred Doctor (Optional)
                 </Label>
                 <Select
-                  name="preferred_doctor_id"
-                  value={formData.preferred_doctor_id}
                   onValueChange={(value) =>
                     handleSelectChange("preferred_doctor_id", value)
                   }
+                  value={formData.preferred_doctor_id}
+                  disabled={loading}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="No preference" />
+                  <SelectTrigger id="preferred_doctor_id">
+                    <SelectValue placeholder="Select a doctor (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">No preference</SelectItem>
                     {doctors.map((doctor) => (
                       <SelectItem
                         key={doctor.doctor_id}
-                        value={doctor.doctor_id.toString()}
+                        value={String(doctor.doctor_id)}
                       >
-                        {doctor.employee.user.first_name}{" "}
+                        Dr. {doctor.employee.user.first_name}{" "}
                         {doctor.employee.user.last_name}
                         {doctor.specialization && ` (${doctor.specialization})`}
                       </SelectItem>
@@ -244,99 +250,124 @@ export default function RequestService() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="preferred_date_1">Preferred Date 1 *</Label>
+                  <Label htmlFor="preferred_date_1">
+                    Preferred Date (1st Choice) *
+                  </Label>
                   <Input
                     id="preferred_date_1"
                     name="preferred_date_1"
                     type="date"
                     value={formData.preferred_date_1}
                     onChange={handleChange}
+                    min={new Date().toISOString().split("T")[0]}
+                    disabled={loading}
                     required
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="preferred_date_2">Preferred Date 2</Label>
+                  <Label htmlFor="preferred_time">Preferred Time *</Label>
+                  <RadioGroup
+                    value={formData.preferred_time}
+                    onValueChange={handleRadioChange}
+                    disabled={loading}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="morning" id="morning" />
+                      <Label htmlFor="morning">Morning</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="afternoon" id="afternoon" />
+                      <Label htmlFor="afternoon">Afternoon</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="evening" id="evening" />
+                      <Label htmlFor="evening">Evening</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="preferred_date_2">
+                    Alternative Date (2nd Choice)
+                  </Label>
                   <Input
                     id="preferred_date_2"
                     name="preferred_date_2"
                     type="date"
                     value={formData.preferred_date_2}
                     onChange={handleChange}
+                    min={new Date().toISOString().split("T")[0]}
+                    disabled={loading}
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="preferred_date_3">Preferred Date 3</Label>
+                  <Label htmlFor="preferred_date_3">
+                    Alternative Date (3rd Choice)
+                  </Label>
                   <Input
                     id="preferred_date_3"
                     name="preferred_date_3"
                     type="date"
                     value={formData.preferred_date_3}
                     onChange={handleChange}
+                    min={new Date().toISOString().split("T")[0]}
+                    disabled={loading}
                   />
                 </div>
               </div>
 
-              <div>
-                <Label>Preferred Time of Day</Label>
-                <RadioGroup
-                  value={formData.preferred_time}
-                  onValueChange={handleRadioChange}
-                  className="flex flex-row space-x-4 mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="morning" id="morning" />
-                    <Label htmlFor="morning">Morning</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="afternoon" id="afternoon" />
-                    <Label htmlFor="afternoon">Afternoon</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="evening" id="evening" />
-                    <Label htmlFor="evening">Evening</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div>
-                <Label htmlFor="reason">Reason for Visit *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason for Request *</Label>
                 <Textarea
                   id="reason"
                   name="reason"
                   value={formData.reason}
                   onChange={handleChange}
-                  placeholder="Please describe why you're seeking this service"
+                  placeholder="Please describe the reason for your appointment request"
+                  disabled={loading}
                   required
+                  rows={3}
                 />
               </div>
 
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="urgent"
                   name="urgent"
                   checked={formData.urgent}
-                  onChange={handleChange}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, urgent: !!checked }))
+                  }
+                  disabled={loading}
                 />
-                <Label htmlFor="urgent">This is urgent (within 48 hours)</Label>
+                <Label htmlFor="urgent" className="font-medium text-red-600">
+                  This is an urgent request
+                </Label>
               </div>
 
-              <div>
-                <Label htmlFor="additional_notes">Additional Notes</Label>
+              <div className="space-y-2">
+                <Label htmlFor="additional_notes">
+                  Additional Notes (Optional)
+                </Label>
                 <Textarea
                   id="additional_notes"
                   name="additional_notes"
                   value={formData.additional_notes}
                   onChange={handleChange}
-                  placeholder="Any other information you'd like us to know"
+                  placeholder="Any additional information that might be helpful"
+                  disabled={loading}
+                  rows={3}
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="space-x-2 flex justify-end">
               <Button
                 type="button"
                 variant="outline"
@@ -346,7 +377,7 @@ export default function RequestService() {
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Submitting Request..." : "Submit Request"}
+                {loading ? "Submitting..." : "Submit Request"}
               </Button>
             </div>
           </form>

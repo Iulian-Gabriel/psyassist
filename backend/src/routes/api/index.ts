@@ -9,6 +9,9 @@ import serviceRoutes from "./serviceRoutes";
 import testsRoutes from "./testsRoutes";
 import notesRoutes from "./notesRoutes";
 import noticesRoutes from "./noticesRoutes";
+import feedbackRoutes from "./feedbackRoutes";
+import serviceRequestRoutes from "./serviceRequestRoutes";
+import serviceTypeRoutes from "./serviceTypeRoutes";
 
 const router = express.Router();
 
@@ -23,5 +26,8 @@ router.use("/services", serviceRoutes);
 router.use("/tests", testsRoutes);
 router.use("/notes", notesRoutes);
 router.use("/notices", noticesRoutes);
+router.use("/feedback", feedbackRoutes);
+router.use("/service-requests", serviceRequestRoutes);
+router.use("/service-types", serviceTypeRoutes);
 
 export default router;
