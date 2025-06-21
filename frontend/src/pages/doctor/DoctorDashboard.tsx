@@ -8,9 +8,22 @@ import {
   ClipboardList,
   ScrollText,
   FileText,
+  MessageSquare,
   UserRound,
   Calendar,
 } from "lucide-react";
+
+const NotImplementedCard = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  return (
+    <Card className={`bg-red-50 border-red-100 ${className}`}>{children}</Card>
+  );
+};
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -156,6 +169,30 @@ export default function DoctorDashboard() {
           </CardContent>
         </Card>
       </div>
+      {/* Patient Feedback Card - Not Implemented */}
+      <NotImplementedCard>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">
+            Patient Feedback
+          </CardTitle>
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-3">
+            View feedback from patients
+          </p>
+          <div className="space-y-2">
+            <Link to="/doctor/feedback">
+              <Button className="w-full">View All Feedback</Button>
+            </Link>
+            <Link to="/doctor/feedback/request">
+              <Button className="w-full" variant="outline">
+                Request New Feedback
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </NotImplementedCard>
     </div>
   );
 }

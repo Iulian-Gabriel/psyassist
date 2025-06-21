@@ -1,6 +1,13 @@
 // frontend/src/App.tsx
 import React from "react"; // Ensure React is imported
-import { Routes, Route, Navigate, Link, useLocation } from "react-router-dom"; // Keep hooks/components used *inside* App
+import {
+  Routes,
+  Route,
+  Navigate,
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom"; // Add useNavigate
 import AuthPage from "./pages/AuthPage";
 import ProfilePage from "./pages/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -46,11 +53,20 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import RequestService from "./pages/patient/RequestService";
+import Dashboard from "./pages/Dashboard"; // Import the redirector Dashboard
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, logout, user } = useAuth(); // Add user to destructuring
   const isAdmin = user?.roles?.includes("admin"); // Check if user has admin role
+  const navigate = useNavigate(); // Hook for navigation
+
+  const handleLogout = () => {
+    logout(); // This should clear the token and user state in your context
+    // Force a navigation to the auth page to ensure a clean state.
+    // The 'replace: true' option prevents the user from navigating back to the logged-in state.
+    navigate("/auth", { replace: true });
+  };
 
   return (
     <div>
@@ -77,7 +93,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <Link to="/profile" className="mr-4 hover:text-blue-600">
                   Profile
                 </Link>
-                <Button onClick={logout} variant="outline" size="sm">
+                <Button onClick={handleLogout} variant="outline" size="sm">
                   Logout
                 </Button>
               </>
@@ -97,58 +113,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const Dashboard = () => {
-  const { user } = useAuth();
-  const isAdmin = user?.roles?.includes("admin");
-  const isDoctor = user?.roles?.includes("doctor");
-
-  return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
-      <p>
-        Welcome back, {user?.firstName || "User"}
-        {(user?.roles?.length ?? 0) > 0 && (
-          <span className="ml-1">
-            , you are {user?.roles?.length === 1 ? "a" : ""}{" "}
-            <span className="font-semibold">{user?.roles?.join(", ")}</span>
-          </span>
-        )}
-        !
-      </p>
-
-      {isAdmin && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-3">Admin Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link to="/admin" className="btn btn-primary">
-              Admin Dashboard
-            </Link>
-            <Link to="/admin/users" className="btn btn-secondary">
-              Manage Users
-            </Link>
-            <Link to="/admin/employees" className="btn btn-secondary">
-              Manage Staff
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {isDoctor && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-3">Doctor Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link to="/services" className="btn btn-primary">
-              My Services
-            </Link>
-            <Link to="/patients" className="btn btn-secondary">
-              My Patients
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+// The local Dashboard component that was here has been removed.
+// The route for "/dashboard" will now use the imported redirector component.
 
 const PublicHomePage = () => (
   <div>
@@ -296,12 +262,12 @@ function App() {
           <Route path="/patient-tests/:id" element={<TestResult />} />
         </Route>
 
-        <Route element={<ProtectedRoute />}>
+        {/* <Route element={<ProtectedRoute />}>
           <Route
             path="/receptionist/service-requests"
             element={<ServiceRequestsList />}
           />
-        </Route>
+        </Route> */}
 
         {/* Optional: Catch-all route for 404 Not Found */}
       </Routes>

@@ -12,6 +12,8 @@ import noticesRoutes from "./noticesRoutes";
 import feedbackRoutes from "./feedbackRoutes";
 import serviceRequestRoutes from "./serviceRequestRoutes";
 import serviceTypeRoutes from "./serviceTypeRoutes";
+import doctorRoutes from "./doctorRoutes";
+import receptionistRoutes from "./receptionistRoutes";
 
 const router = express.Router();
 
@@ -29,5 +31,7 @@ router.use("/notices", noticesRoutes);
 router.use("/feedback", feedbackRoutes);
 router.use("/service-requests", serviceRequestRoutes);
 router.use("/service-types", serviceTypeRoutes);
+router.use("/doctors", doctorRoutes);
+router.use("/receptionists", receptionistRoutes);
 
 export default router;

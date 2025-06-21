@@ -4,7 +4,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import api from "../../services/api";
 
 // UI Components
-import { Button } from "../../components/ui/button";
 import {
   Card,
   CardHeader,

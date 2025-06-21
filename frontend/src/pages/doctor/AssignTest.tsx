@@ -8,7 +8,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { ArrowLeft, FileText, Calendar, Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 
 // Interfaces based on your Prisma schema
 interface Patient {

@@ -19,10 +19,10 @@ router.post(
   employeesController.createAdmin
 );
 router.post(
-  "/doctor",
+  "/receptionist",
   authenticateToken,
   authorizeAdmin,
-  employeesController.createDoctor
+  employeesController.createReceptionist
 );
 
 router.get(

@@ -43,126 +43,6 @@ export const getEmployeeById = async (
   }
 };
 
-// Create a new doctor (with associated user and employee records)
-export const createDoctor = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const {
-      // User data
-      email,
-      password,
-      first_name,
-      last_name,
-      date_of_birth,
-      gender,
-      phone_number,
-      address_street,
-      address_city,
-      address_postal_code,
-      address_country,
-      address_county,
-
-      // Employee data
-      job_title,
-      hire_date,
-
-      // Doctor data
-      specialization,
-      bio,
-    } = req.body;
-
-    // Validate required fields
-    if (
-      !email ||
-      !password ||
-      !first_name ||
-      !last_name ||
-      !date_of_birth ||
-      !job_title ||
-      !phone_number // Add this line to make phone_number required
-    ) {
-      res.status(400).json({ message: "Missing required fields" });
-      return;
-    }
-
-    // Check if email already exists
-    const existingUser = await userService.findByEmail(email);
-    if (existingUser) {
-      res.status(409).json({ message: "Email already in use" });
-      return;
-    }
-
-    // Create doctor with all associated records
-    const result = await employeeService.createEmployeeWithRole(
-      {
-        email,
-        password,
-        first_name,
-        last_name,
-        date_of_birth: new Date(date_of_birth),
-        gender,
-        phone_number,
-        address_street,
-        address_city,
-        address_postal_code,
-        address_country,
-        address_county,
-      },
-      {
-        job_title,
-        hire_date: hire_date ? new Date(hire_date) : new Date(),
-      },
-      "doctor",
-      { specialization, bio }
-    );
-
-    res.status(201).json({
-      message: "Doctor created successfully",
-      data: {
-        user_id: result.user.user_id,
-        employee_id: result.employee.employee_id,
-        doctor_id: result.doctor?.doctor_id,
-        email: result.user.email,
-        first_name: result.user.first_name,
-        last_name: result.user.last_name,
-        job_title: result.employee.job_title,
-        specialization: result.doctor?.specialization,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error creating doctor:", error);
-
-    // Extract phone_number from the request body to use in the error check
-    const { phone_number } = req.body;
-
-    // Only check for P2002 errors with phone_number target when phone_number was actually provided
-    if (
-      error.code === "P2002" &&
-      error.meta?.target?.includes("phone_number") &&
-      phone_number // Only if phone number was provided
-    ) {
-      res.status(409).json({
-        message: "Phone number already in use",
-        field: "phone_number",
-      });
-      return;
-    } else if (
-      error.code === "P2002" &&
-      error.meta?.target?.includes("email")
-    ) {
-      res.status(409).json({
-        message: "Email already in use",
-        field: "email",
-      });
-      return;
-    }
-
-    res.status(500).json({ message: "Failed to create doctor" });
-  }
-};
-
 // Create a new admin (with associated user and employee records)
 export const createAdmin = async (
   req: Request,
@@ -197,7 +77,7 @@ export const createAdmin = async (
       !last_name ||
       !date_of_birth ||
       !job_title ||
-      !phone_number // Add this line to make phone_number required
+      !phone_number
     ) {
       res.status(400).json({ message: "Missing required fields" });
       return;
@@ -254,7 +134,7 @@ export const createAdmin = async (
     if (
       error.code === "P2002" &&
       error.meta?.target?.includes("phone_number") &&
-      phone_number // Only if phone number was provided
+      phone_number
     ) {
       res.status(409).json({
         message: "Phone number already in use",
@@ -276,7 +156,7 @@ export const createAdmin = async (
   }
 };
 
-// Add this to your employeeController.ts
+// Deactivate an employee
 export const deactivateEmployee = async (
   req: Request,
   res: Response
@@ -312,7 +192,7 @@ export const deactivateEmployee = async (
   }
 };
 
-// Add this function to handle employee reactivation
+// Reactivate an employee
 export const reactivateEmployee = async (
   req: Request,
   res: Response
@@ -348,8 +228,7 @@ export const reactivateEmployee = async (
   }
 };
 
-// Add this function to handle employee updates with role changes
-
+// Update an employee
 export const updateEmployee = async (
   req: Request,
   res: Response
@@ -431,7 +310,7 @@ export const updateEmployee = async (
   }
 };
 
-// Add this to your employeesController.ts
+// Get current employee
 export const getCurrentEmployee = async (
   req: AuthenticatedRequest,
   res: Response
@@ -451,8 +330,6 @@ export const getCurrentEmployee = async (
     const employee = await prisma.employee.findUnique({
       where: { user_id: userIdNumber },
       include: {
-        // Check if your Doctor model is related to Employee correctly
-        // The field name must match what's defined in your Prisma schema
         doctor: true,
       },
     });
@@ -474,5 +351,110 @@ export const getCurrentEmployee = async (
   } catch (error) {
     console.error("Error getting current employee:", error);
     res.status(500).json({ message: "Failed to fetch employee data" });
+  }
+};
+
+// Create a receptionist (optional, if you need this role)
+export const createReceptionist = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const {
+      email,
+      password,
+      first_name,
+      last_name,
+      date_of_birth,
+      gender,
+      phone_number,
+      address_street,
+      address_city,
+      address_postal_code,
+      address_country,
+      address_county,
+      job_title,
+      hire_date,
+    } = req.body;
+
+    // Validate required fields
+    if (
+      !email ||
+      !password ||
+      !first_name ||
+      !last_name ||
+      !date_of_birth ||
+      !job_title ||
+      !phone_number
+    ) {
+      res.status(400).json({ message: "Missing required fields" });
+      return;
+    }
+
+    // Check if email already exists
+    const existingUser = await userService.findByEmail(email);
+    if (existingUser) {
+      res.status(409).json({ message: "Email already in use" });
+      return;
+    }
+
+    // Create receptionist with all associated records
+    const result = await employeeService.createEmployeeWithRole(
+      {
+        email,
+        password,
+        first_name,
+        last_name,
+        date_of_birth: new Date(date_of_birth),
+        gender,
+        phone_number,
+        address_street,
+        address_city,
+        address_postal_code,
+        address_country,
+        address_county,
+      },
+      {
+        job_title,
+        hire_date: hire_date ? new Date(hire_date) : new Date(),
+      },
+      "receptionist"
+    );
+
+    res.status(201).json({
+      message: "Receptionist created successfully",
+      data: {
+        user_id: result.user.user_id,
+        employee_id: result.employee.employee_id,
+        email: result.user.email,
+        first_name: result.user.first_name,
+        last_name: result.user.last_name,
+        job_title: result.employee.job_title,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error creating receptionist:", error);
+
+    // Handle common errors
+    if (error.code === "P2002") {
+      if (error.meta?.target?.includes("email")) {
+        res.status(409).json({
+          message: "Email already in use",
+          field: "email",
+        });
+        return;
+      } else if (
+        error.meta?.target?.includes("phone_number") &&
+        req.body.phone_number
+      ) {
+        res.status(409).json({
+          message: "Phone number already in use",
+          field: "phone_number",
+        });
+        return;
+      }
+    }
+
+    res.status(500).json({ message: "Failed to create receptionist" });
   }
 };
