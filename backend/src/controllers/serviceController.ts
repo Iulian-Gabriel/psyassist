@@ -113,6 +113,8 @@ export const createService = async (
     if (notes) {
       await prisma.notes.create({
         data: {
+          doctor_id: parseInt(doctor_id),
+          patient_id: parseInt(patient_id),
           service_id: service.service_id,
           content: notes,
         },
@@ -226,5 +228,72 @@ export const cancelService = async (
   } catch (error) {
     console.error("Error cancelling service:", error);
     res.status(500).json({ message: "Failed to cancel service" });
+  }
+};
+
+export const getDoctorServices = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Not authenticated" });
+      return;
+    }
+
+    // Find the doctor_id for the authenticated user
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        employee: {
+          user_id: userId,
+        },
+      },
+      select: {
+        doctor_id: true,
+      },
+    });
+
+    if (!doctor) {
+      res
+        .status(403)
+        .json({ message: "Access denied. Not a recognized doctor." });
+      return;
+    }
+
+    const services = await prisma.service.findMany({
+      where: {
+        employee_id: doctor.doctor_id, // Filter services by the doctor's ID
+      },
+      include: {
+        doctor: {
+          // Include doctor details even though we know it's *this* doctor, for consistent frontend data shape
+          include: {
+            employee: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+        serviceParticipants: {
+          include: {
+            patient: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        start_time: "desc",
+      },
+    });
+
+    res.json(services);
+  } catch (error) {
+    console.error("Error fetching doctor's services:", error);
+    res.status(500).json({ message: "Failed to fetch doctor's services" });
   }
 };

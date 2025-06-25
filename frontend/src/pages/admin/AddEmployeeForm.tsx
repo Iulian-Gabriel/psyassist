@@ -86,7 +86,7 @@ export default function AddEmployeeForm() {
 
       // Send request to appropriate endpoint based on role
       const endpoint =
-        selectedRole === "doctor" ? "/employees/doctor" : "/employees/admin";
+        selectedRole === "doctor" ? "/doctor" : "/employees/admin";
 
       await api.post(endpoint, formDataToSubmit);
 

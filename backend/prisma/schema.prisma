@@ -15,6 +15,7 @@ model Doctor {
   created_at     DateTime         @default(now()) @db.Timestamp(6)
   updated_at     DateTime         @default(now()) @db.Timestamp(6)
   employee       Employee         @relation(fields: [employee_id], references: [employee_id], onDelete: NoAction, onUpdate: NoAction)
+  notes          Notes[]
   services       Service[]
   ServiceRequest ServiceRequest[]
 
@@ -37,28 +38,36 @@ model Employee {
 
 model Feedback {
   feedback_id        Int                @id @default(autoincrement())
-  service_id         Int
-  participant_id     Int
+  service_id         Int?
+  participant_id     Int?
   rating_score       Int?
   comments           String?
   submission_date    DateTime           @default(now()) @db.Timestamp(6)
   is_anonymous       Boolean            @default(false)
   target_type        FeedbackTargetType
-  serviceParticipant ServiceParticipant @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
-  service            Service            @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
+  is_clean_facilities      Boolean? @map("is_clean_facilities")
+  is_friendly_staff        Boolean? @map("is_friendly_staff")
+  is_easy_accessibility    Boolean? @map("is_easy_accessibility")
+  is_smooth_admin_process  Boolean? @map("is_smooth_admin_process")
+  serviceParticipant ServiceParticipant? @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
+  service            Service?            @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("FEEDBACK")
 }
 
 model Notes {
   note_id            Int                 @id @default(autoincrement())
-  service_id         Int
+  service_id         Int?
   participant_id     Int?
+  doctor_id          Int
+  patient_id         Int
   content            String
   created_at         DateTime            @default(now()) @db.Timestamp(6)
   updated_at         DateTime            @default(now()) @db.Timestamp(6)
+  doctor             Doctor              @relation(fields: [doctor_id], references: [doctor_id], onDelete: Cascade, onUpdate: NoAction)
+  patient            Patient             @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade, onUpdate: NoAction)
   serviceParticipant ServiceParticipant? @relation(fields: [participant_id], references: [participant_id], onDelete: NoAction, onUpdate: NoAction)
-  service            Service             @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
+  service            Service?            @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("NOTES")
 }
@@ -94,6 +103,7 @@ model Patient {
   created_at              DateTime             @default(now()) @db.Timestamp(6)
   updated_at              DateTime             @default(now()) @db.Timestamp(6)
   user                    User                 @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  notes                   Notes[]
   patientForms            PatientForm[]
   serviceParticipants     ServiceParticipant[]
   testInstances           TestInstance[]

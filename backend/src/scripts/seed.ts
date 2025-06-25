@@ -327,6 +327,8 @@ async function main() {
       if (service.status === "Completed") {
         await prisma.notes.create({
           data: {
+            doctor_id: randomDoctor.doctor_id,
+            patient_id: patient.patient_id,
             service_id: service.service_id,
             participant_id: participant.participant_id,
             content: `Follow-up notes for ${

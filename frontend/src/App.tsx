@@ -18,7 +18,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 // Add these imports after your existing imports
 import AdminUsersList from "./pages/admin/AdminUsersList";
 import EmployeesList from "./pages/admin/EmployeesList";
-import ServicesList from "./pages/admin/ServicesList";
+import ServicesList from "./pages/ServicesList";
 import AddEmployeeForm from "./pages/admin/AddEmployeeForm";
 
 // Add these imports at the top
@@ -27,7 +27,7 @@ import EditEmployeeForm from "./components/forms/EditEmployeeForm";
 import EditPatientForm from "./components/forms/EditPatientForm";
 
 // Add this import at the top of your file with the other admin page imports
-import PatientsList from "./pages/admin/PatientsList";
+import PatientsList from "./pages/PatientsList";
 
 // Replace these imports
 import ServiceFormView from "./components/forms/ServiceFormView";
@@ -193,8 +193,30 @@ function App() {
           />
           {/* Doctor routes */}
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-          <Route path="/doctor/patients" element={<PatientsList />} />
-          <Route path="/doctor/services" element={<ServicesList />} />
+          <Route
+            path="/doctor/patients"
+            element={<PatientsList isDoctorView={true} />}
+          />
+          <Route
+            path="/doctor/services"
+            element={<ServicesList isDoctorView={true} />}
+          />
+          <Route
+            path="/psychological-forms/:id"
+            element={<ServiceFormView />}
+          />
+          <Route
+            path="/psychological-forms/:id/edit"
+            element={<EditPsychologicalForm />}
+          />
+          <Route path="/psychological-forms" element={<PsychologicalForms />} />
+          <Route
+            path="/psychological-forms/create"
+            element={<ServiceFormCreator />}
+          />
+          <Route path="/patient-tests" element={<PatientTests />} />
+          <Route path="/patient-tests/assign" element={<AssignTest />} />
+          <Route path="/patient-tests/:id" element={<TestResult />} />
           {/* Receptionist routes */}
           <Route
             path="/receptionist/dashboard"
@@ -244,22 +266,7 @@ function App() {
             path="/admin/service-requests"
             element={<ServiceRequestsList />}
           />
-          <Route
-            path="/psychological-forms/:id"
-            element={<ServiceFormView />}
-          />
-          <Route
-            path="/psychological-forms/:id/edit"
-            element={<EditPsychologicalForm />}
-          />
-          <Route path="/psychological-forms" element={<PsychologicalForms />} />
-          <Route
-            path="/psychological-forms/create"
-            element={<ServiceFormCreator />}
-          />
-          <Route path="/patient-tests" element={<PatientTests />} />
-          <Route path="/patient-tests/assign" element={<AssignTest />} />
-          <Route path="/patient-tests/:id" element={<TestResult />} />
+          <Route path="/admin/feedback" element={<FeedbackList />} />
         </Route>
 
         {/* <Route element={<ProtectedRoute />}>

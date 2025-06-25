@@ -32,34 +32,58 @@ import {
   Star,
   Calendar,
   AlertCircle,
-  Clock,
   MessagesSquare,
+  CheckCircle2, // For displaying true booleans
 } from "lucide-react";
+
+enum FeedbackTargetType {
+  DOCTOR = "DOCTOR",
+  SERVICE = "SERVICE", // In your schema, SERVICE is used for clinic/general service feedback
+}
+
+// Define only the four specified clinic feedback attributes for display purposes
+const CLINIC_DISPLAY_ATTRIBUTES = [
+  { label: "Clean Facilities", field: "is_clean_facilities" },
+  { label: "Friendly Staff", field: "is_friendly_staff" },
+  { label: "Easy Accessibility", field: "is_easy_accessibility" },
+  { label: "Smooth Admin Process", field: "is_smooth_admin_process" },
+];
 
 interface FeedbackItem {
   feedback_id: number;
-  service_id: number;
-  participant_id: number;
+  service_id: number | null;
+  participant_id: number | null;
   rating_score: number | null;
   comments: string | null;
   submission_date: string;
   is_anonymous: boolean;
-  service: {
+  target_type: FeedbackTargetType;
+  // NEW: Include only these four boolean fields
+  is_clean_facilities?: boolean | null;
+  is_friendly_staff?: boolean | null;
+  is_easy_accessibility?: boolean | null;
+  is_smooth_admin_process?: boolean | null;
+
+  service?: {
     service_type: string;
     start_time: string;
     end_time: string;
-  };
-  serviceParticipant: {
+  } | null;
+  serviceParticipant?: {
     patient: {
       user: {
         first_name: string;
         last_name: string;
       };
     };
-  };
+  } | null;
 }
 
-export default function FeedbackList() {
+interface FeedbackListProps {
+  isAdmin?: boolean;
+}
+
+export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -74,18 +98,39 @@ export default function FeedbackList() {
         setLoading(true);
         setError(null);
 
-        if (!user?.id) {
-          setError("User ID not found");
-          return;
+        let response;
+
+        // Different endpoints for admin and doctor views
+        if (isAdmin) {
+          // Admin sees all feedback
+          response = await api.get("/feedback");
+        } else {
+          // Doctor only sees their own feedback
+          if (!user?.id) {
+            setError("User ID not found");
+            return;
+          }
+          response = await api.get(`/feedback/doctor/${user.id}/all`);
         }
 
-        // Use the new endpoint that provides categorized feedback
-        const response = await api.get(`/feedback/doctor/${user.id}/all`);
-
-        // The response now includes categorized feedback
-        setFeedback(response.data.all); // All feedback
-        setDoctorFeedback(response.data.doctorSpecific); // Doctor-specific feedback
-        setClinicFeedback(response.data.clinicFeedback); // Clinic feedback
+        // If admin gets flat feedback array, if doctor gets categorized object
+        if (isAdmin) {
+          // Admin view - just set all feedback to the array
+          const allFeedback = response.data;
+          setFeedback(allFeedback);
+          // Categorize feedback for the admin view
+          setDoctorFeedback(
+            allFeedback.filter((item) => item.target_type === "DOCTOR")
+          );
+          setClinicFeedback(
+            allFeedback.filter((item) => item.target_type === "SERVICE")
+          );
+        } else {
+          // Doctor view - use categorized feedback
+          setFeedback(response.data.all);
+          setDoctorFeedback(response.data.doctorSpecific);
+          setClinicFeedback(response.data.clinicFeedback);
+        }
       } catch (err: any) {
         console.error("Failed to fetch feedback:", err);
         setError(err.message || "Failed to load feedback");
@@ -95,9 +140,8 @@ export default function FeedbackList() {
     };
 
     fetchFeedback();
-  }, [user?.id]);
+  }, [user?.id, isAdmin]);
 
-  // Group feedback by rating for statistics
   const feedbackStats = {
     total: feedback.length,
     withRating: feedback.filter((item) => item.rating_score !== null).length,
@@ -113,12 +157,10 @@ export default function FeedbackList() {
     },
   };
 
-  // Format date for display
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Format time for display
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString([], {
       hour: "2-digit",
@@ -126,7 +168,6 @@ export default function FeedbackList() {
     });
   };
 
-  // Render stars for rating
   const renderStars = (rating: number | null) => {
     if (rating === null) return "No rating";
 
@@ -150,7 +191,9 @@ export default function FeedbackList() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Patient Feedback</h1>
+        <h1 className="text-3xl font-bold">
+          {isAdmin ? "All Patient Feedback" : "Patient Feedback"}
+        </h1>
       </div>
 
       {error && <ApiErrorDisplay error={error} className="mb-6" />}
@@ -283,15 +326,18 @@ export default function FeedbackList() {
       );
     }
 
+    console.log("Rendering feedback items:", items); // Add this for debugging
+
     return (
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
-            <TableHead>Service Type</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Patient</TableHead>
             <TableHead>Rating</TableHead>
             <TableHead>Comments</TableHead>
+            <TableHead className="w-[200px]">Specific Details</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -309,23 +355,45 @@ export default function FeedbackList() {
               </TableCell>
               <TableCell>
                 <div className="flex flex-col">
-                  <span>{item.service.service_type}</span>
-                  <span className="text-xs text-muted-foreground flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {formatDate(item.service.start_time)}
-                  </span>
+                  {item.service ? (
+                    <>
+                      <span>{item.service.service_type}</span>
+                      <span className="text-xs text-muted-foreground flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {formatDate(item.service.start_time)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-medium">
+                      General Clinic Feedback
+                    </span>
+                  )}
+                  <Badge
+                    variant={
+                      item.target_type === FeedbackTargetType.DOCTOR
+                        ? "default"
+                        : "outline"
+                    }
+                    className="mt-1 w-fit"
+                  >
+                    {item.target_type === FeedbackTargetType.DOCTOR
+                      ? "Doctor Specific"
+                      : "Clinic General"}
+                  </Badge>
                 </div>
               </TableCell>
               <TableCell>
                 {item.is_anonymous ? (
                   <Badge variant="secondary">Anonymous</Badge>
-                ) : (
+                ) : item.serviceParticipant ? (
                   <div className="flex flex-col">
                     <span>
                       {item.serviceParticipant.patient.user.first_name}{" "}
                       {item.serviceParticipant.patient.user.last_name}
                     </span>
                   </div>
+                ) : (
+                  <Badge variant="outline">Clinic Feedback</Badge>
                 )}
               </TableCell>
               <TableCell>{renderStars(item.rating_score)}</TableCell>
@@ -334,7 +402,35 @@ export default function FeedbackList() {
                   <div className="line-clamp-2">{item.comments}</div>
                 ) : (
                   <span className="text-muted-foreground italic">
-                    No comments provided
+                    No comments
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="max-w-xs">
+                {item.target_type === FeedbackTargetType.SERVICE ? (
+                  <div className="flex flex-col gap-1">
+                    {CLINIC_DISPLAY_ATTRIBUTES.filter(
+                      (attr) => item[attr.field as keyof typeof item] === true
+                    ).map((attr) => (
+                      <div
+                        key={attr.field}
+                        className="flex items-center text-xs text-green-700"
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        {attr.label}
+                      </div>
+                    ))}
+                    {CLINIC_DISPLAY_ATTRIBUTES.every(
+                      (attr) => item[attr.field as keyof typeof item] !== true
+                    ) && (
+                      <span className="text-muted-foreground italic text-xs">
+                        No specific attributes selected
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground italic text-xs">
+                    N/A (Doctor Feedback)
                   </span>
                 )}
               </TableCell>

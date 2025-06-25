@@ -4,7 +4,10 @@ import { config } from "../config/env";
 
 // Extend Express Request type to include userId
 export interface AuthenticatedRequest extends Request {
-  userId?: string;
+  user?: {
+    userId: number;
+    role: string;
+  };
 }
 
 export function authenticateToken(
@@ -26,10 +29,14 @@ export function authenticateToken(
     }
 
     const payload = jwt.verify(token, config.accessTokenSecret) as unknown as {
-      userId: string;
+      userId: number;
+      role: string;
     };
 
-    req.userId = payload.userId;
+    req.user = {
+      userId: payload.userId,
+      role: payload.role,
+    };
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {

@@ -63,7 +63,7 @@ export default function AssignTest() {
         setError(null);
 
         // Simply get all patients without role restrictions
-        const patientsPromise = api.get("/patients");
+        const patientsPromise = api.get("doctor/current/patients");
 
         // Fetch forms and patients concurrently
         const [patientsResponse, formsResponse] = await Promise.all([

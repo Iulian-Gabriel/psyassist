@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import api from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { Notes, Service, Patient, ServiceParticipant } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -41,81 +39,59 @@ import {
   CalendarIcon,
   UserIcon,
   Clock,
+  Check,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { CheckIcon, ChevronsUpDown, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-// Define types with relations (extending Prisma types)
-interface NoteWithRelations extends Notes {
-  service: ServiceWithDoctor;
-  serviceParticipant?: ServiceParticipantWithPatient;
+// --- FIX: All types are now defined locally, no more @prisma/client import ---
+
+interface UserData {
+  first_name: string;
+  last_name: string;
+  email?: string;
 }
 
-interface ServiceWithDoctor extends Service {
-  doctor: {
-    employee: {
-      user: {
-        first_name: string;
-        last_name: string;
-      };
-    };
+interface DoctorWithUser {
+  employee: {
+    user: UserData;
   };
 }
 
-interface ServiceParticipantWithPatient extends ServiceParticipant {
-  patient: {
-    user: {
-      first_name: string;
-      last_name: string;
-    };
-  };
+interface PatientWithUser {
+  patient_id: number;
+  user: UserData;
 }
 
-interface ServiceWithRelations extends Service {
-  doctor: {
-    doctor_id: number;
-    employee: {
-      user: {
-        first_name: string;
-        last_name: string;
-      };
-    };
-  };
+interface ServiceParticipantWithPatient {
+  patient: PatientWithUser;
+}
+
+interface Service {
+  service_id: number;
+  service_type: string;
+  start_time: string;
+}
+
+interface NoteWithRelations {
+  note_id: number;
+  content: string;
+  created_at: string;
+  patient: PatientWithUser;
+  doctor: DoctorWithUser;
+  service?: Service | null;
+  serviceParticipant?: ServiceParticipantWithPatient | null;
+}
+
+interface ServiceWithParticipants extends Service {
   serviceParticipants: Array<{
     participant_id: number;
     patient_id: number;
-    patient: {
-      user: {
-        first_name: string;
-        last_name: string;
-      };
-    };
+    patient: PatientWithUser;
   }>;
 }
 
-interface PatientWithUser extends Patient {
-  user: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-}
+// --- Component Definitions ---
 
-// Create a patient selection component to isolate the logic
 const PatientSelector = ({
   patients,
   selectedPatient,
@@ -125,29 +101,26 @@ const PatientSelector = ({
   selectedPatient: string;
   onPatientSelected: (patientId: string) => void;
 }) => {
-  const [open, setOpen] = useState(false); // Don't open initially
+  const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
-  // Filter patients based on search input
   const filteredPatients = patients.filter((patient) => {
     const fullName =
       `${patient.user.first_name} ${patient.user.last_name}`.toLowerCase();
-    const email = patient.user.email.toLowerCase();
+    const email = patient.user.email?.toLowerCase() || "";
     const search = inputValue.toLowerCase();
     return fullName.includes(search) || email.includes(search);
   });
 
-  // Function to handle selection
   const handleSelect = useCallback(
     (patientId: string) => {
       onPatientSelected(patientId);
       setOpen(false);
-      setInputValue(""); // Clear input value after selection
+      setInputValue("");
     },
     [onPatientSelected]
   );
 
-  // Get the selected patient's name if available
   const selectedPatientObj = selectedPatient
     ? patients.find((p) => p.patient_id.toString() === selectedPatient)
     : null;
@@ -166,29 +139,19 @@ const PatientSelector = ({
           value={inputValue}
           onChange={(e) => {
             setInputValue(e.target.value);
-            // Open dropdown when user starts typing
-            if (!open) {
-              setOpen(true);
-            }
+            if (!open) setOpen(true);
           }}
           onClick={() => setOpen(true)}
           className="w-full"
         />
-
-        {/* Show selected patient name when input is empty and patient is selected */}
-        {selectedPatient && inputValue === "" && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">
+        {selectedPatient && !inputValue && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
             {selectedPatientName}
           </div>
         )}
-
         {open && (
           <div className="absolute w-full z-50 bg-background border rounded-md shadow-lg mt-1 max-h-60 overflow-auto">
-            {filteredPatients.length === 0 ? (
-              <div className="px-2 py-2 text-sm text-muted-foreground">
-                No patients found
-              </div>
-            ) : (
+            {filteredPatients.length > 0 ? (
               filteredPatients.map((patient) => (
                 <div
                   key={patient.patient_id}
@@ -214,12 +177,14 @@ const PatientSelector = ({
                   </div>
                 </div>
               ))
+            ) : (
+              <div className="px-2 py-2 text-sm text-muted-foreground">
+                No patients found
+              </div>
             )}
           </div>
         )}
       </div>
-
-      {/* Click outside handler */}
       {open && (
         <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
       )}
@@ -227,80 +192,48 @@ const PatientSelector = ({
   );
 };
 
-// Cleaner version of the AppointmentSelector component
-
 const AppointmentSelector = ({
   services,
   selectedService,
   onServiceSelected,
 }: {
-  services: ServiceWithRelations[];
+  services: ServiceWithParticipants[];
   selectedService: string;
   onServiceSelected: (serviceId: string) => void;
 }) => {
-  const [open, setOpen] = useState(false); // Don't open initially
-  const [inputValue, setInputValue] = useState("");
+  const [open, setOpen] = useState(false);
 
-  // Filter services based on search input
-  const filteredServices = services.filter((service) => {
-    const serviceType = service.service_type.toLowerCase();
-    const dateTime = format(
-      new Date(service.start_time),
-      "MMM d, yyyy h:mm a"
-    ).toLowerCase();
-    const search = inputValue.toLowerCase();
-    return serviceType.includes(search) || dateTime.includes(search);
-  });
-
-  // Function to handle selection
   const handleSelect = useCallback(
     (serviceId: string) => {
       onServiceSelected(serviceId);
       setOpen(false);
-      setInputValue(""); // Clear input value after selection
     },
     [onServiceSelected]
   );
 
-  // Get selected service details
   const selectedServiceObj = selectedService
     ? services.find((s) => s.service_id.toString() === selectedService)
     : null;
 
-  // Get display text
   const displayText = selectedServiceObj
     ? `${selectedServiceObj.service_type} - ${format(
         new Date(selectedServiceObj.start_time),
         "MMM d, yyyy h:mm a"
       )}`
-    : "";
+    : "Search appointments...";
 
   return (
     <div className="grid gap-2">
       <Label htmlFor="appointment-search">Appointment (Optional)</Label>
       <div className="relative">
-        <Input
-          id="appointment-search"
-          placeholder={selectedService ? "" : "Search appointments..."}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onFocus={() => setOpen(true)}
-          className="w-full"
-        />
-
-        {/* Show selected appointment when input is empty */}
-        {inputValue === "" && (
-          <div
-            className="absolute inset-0 left-3 flex items-center cursor-pointer"
-            onClick={() => {
-              // Focus the input, which will open the dropdown
-              document.getElementById("appointment-search")?.focus();
-            }}
-          >
-            <span className="text-sm">{displayText}</span>
-          </div>
-        )}
-
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setOpen(true)}
+          className="w-full justify-start font-normal"
+        >
+          {displayText}
+        </Button>
         {open && (
           <div className="absolute w-full z-50 bg-background border rounded-md shadow-lg mt-1 max-h-60 overflow-auto">
             <div
@@ -310,52 +243,34 @@ const AppointmentSelector = ({
               onClick={() => handleSelect("")}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-medium">No specific appointment</span>
-                </div>
+                <span>No specific appointment (General Note)</span>
                 {selectedService === "" && <Check className="h-4 w-4" />}
               </div>
             </div>
-
-            {filteredServices.length === 0 ? (
-              <div className="px-2 py-2 text-sm text-muted-foreground">
-                No appointments found
-              </div>
-            ) : (
-              filteredServices.map((service) => (
-                <div
-                  key={service.service_id}
-                  className={`px-2 py-2 text-sm cursor-pointer hover:bg-accent ${
-                    selectedService === service.service_id.toString()
-                      ? "bg-accent"
-                      : ""
-                  }`}
-                  onClick={() => handleSelect(service.service_id.toString())}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-medium">
-                        {service.service_type}
-                      </span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {format(
-                          new Date(service.start_time),
-                          "MMM d, yyyy h:mm a"
-                        )}
-                      </span>
-                    </div>
-                    {selectedService === service.service_id.toString() && (
-                      <Check className="h-4 w-4" />
-                    )}
-                  </div>
+            {services.map((service) => (
+              <div
+                key={service.service_id}
+                className={`px-2 py-2 text-sm cursor-pointer hover:bg-accent ${
+                  selectedService === service.service_id.toString()
+                    ? "bg-accent"
+                    : ""
+                }`}
+                onClick={() => handleSelect(service.service_id.toString())}
+              >
+                <div className="flex items-center justify-between">
+                  <span>
+                    {service.service_type} -{" "}
+                    {format(new Date(service.start_time), "MMM d, yyyy h:mm a")}
+                  </span>
+                  {selectedService === service.service_id.toString() && (
+                    <Check className="h-4 w-4" />
+                  )}
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         )}
       </div>
-
-      {/* Click outside handler */}
       {open && (
         <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
       )}
@@ -364,85 +279,73 @@ const AppointmentSelector = ({
 };
 
 export default function PatientNotes() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<NoteWithRelations[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // New note dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [allServices, setAllServices] = useState<ServiceWithRelations[]>([]);
+  const [allServices, setAllServices] = useState<ServiceWithParticipants[]>([]);
   const [patients, setPatients] = useState<PatientWithUser[]>([]);
   const [selectedService, setSelectedService] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<string>("");
   const [patientAppointments, setPatientAppointments] = useState<
-    ServiceWithRelations[]
+    ServiceWithParticipants[]
   >([]);
   const [noteContent, setNoteContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Edit note dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<NoteWithRelations | null>(
     null
   );
   const [editContent, setEditContent] = useState("");
 
-  // Delete confirmation dialog state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
 
+  // --- FIX: Wrapped fetchNotes in useCallback to satisfy exhaustive-deps ---
+  const fetchNotes = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get(`/notes/doctor/${user.id}`);
+      setNotes(response.data);
+    } catch (err) {
+      console.error("Error fetching patient notes:", err);
+      setError("Failed to load patient notes. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // --- FIX: Added fetchNotes to dependency array ---
   useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // For now, we'll just fetch all notes since we don't have role-based access yet
-        const response = await api.get("/notes/doctor/1"); // Using a placeholder doctor ID for now
-
-        setNotes(response.data);
-      } catch (err) {
-        console.error("Error fetching patient notes:", err);
-        setError("Failed to load patient notes. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNotes();
-  }, []);
+  }, [fetchNotes]);
 
-  const fetchServices = async () => {
+  const handleAddNote = async () => {
     try {
-      const response = await api.get("/notes/services");
-      setAllServices(response.data);
+      setIsSubmitting(true);
+      const [servicesResponse, patientsResponse] = await Promise.all([
+        api.get("/notes/services"),
+        api.get("/notes/patients"),
+      ]);
+      setAllServices(servicesResponse.data);
+      setPatients(patientsResponse.data);
+      setSelectedService("");
+      setSelectedPatient("");
+      setPatientAppointments([]);
+      setNoteContent("");
+      setIsDialogOpen(true);
     } catch (err) {
-      console.error("Error fetching services:", err);
-      setError("Failed to load services. Please try again.");
+      console.error("Error preparing new note dialog:", err);
+      setError("Failed to open new note dialog.");
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const fetchPatients = async () => {
-    try {
-      const response = await api.get("/notes/patients");
-      setPatients(response.data);
-    } catch (err) {
-      console.error("Error fetching patients:", err);
-      setError("Failed to load patients. Please try again.");
-    }
-  };
-
-  const handleAddNote = () => {
-    fetchServices();
-    fetchPatients();
-    setSelectedService("");
-    setSelectedPatient("");
-    setPatientAppointments([]);
-    setNoteContent("");
-    setIsDialogOpen(true);
   };
 
   const handleEditNote = (note: NoteWithRelations) => {
@@ -458,14 +361,11 @@ export default function PatientNotes() {
 
   const handleDeleteNote = async () => {
     if (!deletingNoteId) return;
-
     try {
       setIsSubmitting(true);
       await api.delete(`/notes/${deletingNoteId}`);
-
-      // Remove the deleted note from the state
-      setNotes(notes.filter((note) => note.note_id !== deletingNoteId));
-
+      // Refetch notes after deleting
+      await fetchNotes();
       setIsDeleteDialogOpen(false);
       setDeletingNoteId(null);
     } catch (err) {
@@ -483,33 +383,22 @@ export default function PatientNotes() {
 
       if (!selectedPatient) {
         setError("Please select a patient");
-        setIsSubmitting(false);
         return;
       }
-
       if (!noteContent.trim()) {
         setError("Please enter note content");
-        setIsSubmitting(false);
         return;
       }
 
-      // Create payload based on whether an appointment is selected
       const payload = {
         patientId: selectedPatient,
         content: noteContent,
-        // Only include serviceId if one is selected
         ...(selectedService && { serviceId: selectedService }),
       };
 
-      const response = await api.post("/notes", payload);
-
-      // Add the new note to the state
-      setNotes([response.data, ...notes]);
-
+      await api.post("/notes", payload);
+      await fetchNotes(); // Refetch all notes to get the new one
       setIsDialogOpen(false);
-      setNoteContent("");
-      setSelectedService("");
-      setSelectedPatient("");
     } catch (err) {
       console.error("Error creating note:", err);
       setError("Failed to create note. Please try again.");
@@ -520,29 +409,20 @@ export default function PatientNotes() {
 
   const handleUpdateNote = async () => {
     if (!editingNote) return;
-
     try {
       setIsSubmitting(true);
-
       if (!editContent.trim()) {
         setError("Please enter note content");
         return;
       }
 
-      const response = await api.put(`/notes/${editingNote.note_id}`, {
+      await api.put(`/notes/${editingNote.note_id}`, {
         content: editContent,
       });
 
-      // Update the note in the state
-      setNotes(
-        notes.map((note) =>
-          note.note_id === editingNote.note_id ? response.data : note
-        )
-      );
-
+      await fetchNotes(); // Refetch all notes to see the update
       setIsEditDialogOpen(false);
       setEditingNote(null);
-      setEditContent("");
     } catch (err) {
       console.error("Error updating note:", err);
       setError("Failed to update note. Please try again.");
@@ -551,16 +431,13 @@ export default function PatientNotes() {
     }
   };
 
-  const handlePatientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const patientId = e.target.value;
+  const handlePatientSelectionChange = (patientId: string) => {
     setSelectedPatient(patientId);
-    setSelectedService(""); // Reset service selection when patient changes
-
+    setSelectedService("");
     if (patientId) {
-      // Filter services for this patient
       const patientServices = allServices.filter((service) =>
         service.serviceParticipants.some(
-          (participant) => participant.patient_id.toString() === patientId
+          (p) => p.patient_id.toString() === patientId
         )
       );
       setPatientAppointments(patientServices);
@@ -569,17 +446,10 @@ export default function PatientNotes() {
     }
   };
 
-  // Filter notes based on search term
   const filteredNotes = notes.filter((note) => {
-    const patientName =
-      note.serviceParticipant?.patient.user.first_name +
-        " " +
-        note.serviceParticipant?.patient.user.last_name || "";
-    const doctorName =
-      note.service.doctor.employee.user.first_name +
-      " " +
-      note.service.doctor.employee.user.last_name;
-    const serviceType = note.service.service_type;
+    const patientName = `${note.patient.user.first_name} ${note.patient.user.last_name}`;
+    const doctorName = `${note.doctor.employee.user.first_name} ${note.doctor.employee.user.last_name}`;
+    const serviceType = note.service?.service_type || "";
     const noteContent = note.content;
 
     const searchString =
@@ -591,7 +461,7 @@ export default function PatientNotes() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Patient Notes</h1>
-        <Button onClick={handleAddNote}>
+        <Button onClick={handleAddNote} disabled={isSubmitting}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add New Note
         </Button>
@@ -601,15 +471,10 @@ export default function PatientNotes() {
 
       <Card className="mb-6">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Search Notes</CardTitle>
-              <CardDescription>
-                Search for patient notes by content, patient name, or service
-                type
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle>Search Notes</CardTitle>
+          <CardDescription>
+            Search by content, patient, or service type
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
@@ -628,7 +493,7 @@ export default function PatientNotes() {
         <CardHeader>
           <CardTitle>All Patient Notes</CardTitle>
           <CardDescription>
-            Notes from patient consultations and appointments
+            Notes from patient consultations and general records
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -654,7 +519,7 @@ export default function PatientNotes() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Patient</TableHead>
-                  <TableHead>Service Type</TableHead>
+                  <TableHead>Service / Note Type</TableHead>
                   <TableHead>Appointment Time</TableHead>
                   <TableHead>Note</TableHead>
                   <TableHead>Actions</TableHead>
@@ -667,27 +532,31 @@ export default function PatientNotes() {
                       {format(new Date(note.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      {note.serviceParticipant ? (
+                      <div className="flex items-center gap-2">
+                        <UserIcon className="h-4 w-4 text-muted-foreground" />
+                        {note.patient.user.first_name}{" "}
+                        {note.patient.user.last_name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {note.service ? (
                         <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-muted-foreground" />
-                          {note.serviceParticipant.patient.user.first_name}{" "}
-                          {note.serviceParticipant.patient.user.last_name}
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                          {note.service.service_type}
                         </div>
                       ) : (
-                        <Badge variant="outline">No Patient</Badge>
+                        <Badge variant="secondary">General Note</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                        {note.service.service_type}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(note.service.start_time), "h:mm a")}
-                      </div>
+                      {note.service ? (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          {format(new Date(note.service.start_time), "h:mm a")}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
                     </TableCell>
                     <TableCell className="max-w-md">
                       <div className="truncate">{note.content}</div>
@@ -702,7 +571,7 @@ export default function PatientNotes() {
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="destructive"
                           size="sm"
                           onClick={() => handleDeletePrompt(note.note_id)}
                         >
@@ -718,58 +587,30 @@ export default function PatientNotes() {
         </CardContent>
       </Card>
 
-      {/* Add Note Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
             <DialogTitle>Add New Patient Note</DialogTitle>
-            <DialogDescription>
-              Create a note for a patient with optional appointment selection
-            </DialogDescription>
+            <DialogDescription>Create a note for a patient.</DialogDescription>
           </DialogHeader>
-
           <div className="grid gap-4 py-4">
-            {/* Patient selection with custom component */}
             <PatientSelector
               patients={patients}
               selectedPatient={selectedPatient}
-              onPatientSelected={(patientId) => {
-                setSelectedPatient(patientId);
-                // Create a synthetic event to pass to handlePatientChange
-                const event = {
-                  target: { value: patientId },
-                } as React.ChangeEvent<HTMLSelectElement>;
-                handlePatientChange(event);
-              }}
+              onPatientSelected={handlePatientSelectionChange}
             />
-
-            {/* Appointment selection with custom component */}
-            {selectedPatient &&
-              (patientAppointments.length > 0 ? (
-                <AppointmentSelector
-                  services={patientAppointments}
-                  selectedService={selectedService}
-                  onServiceSelected={(serviceId) => {
-                    setSelectedService(serviceId);
-                  }}
-                />
-              ) : (
-                <div className="grid gap-2">
-                  <Label htmlFor="service">Appointment (Optional)</Label>
-                  <div className="p-2 border border-input rounded-md bg-muted/20">
-                    <p className="text-sm text-muted-foreground">
-                      This patient has no appointments on record. You can still
-                      create a general note.
-                    </p>
-                  </div>
-                </div>
-              ))}
-
+            {selectedPatient && (
+              <AppointmentSelector
+                services={patientAppointments}
+                selectedService={selectedService}
+                onServiceSelected={setSelectedService}
+              />
+            )}
             <div className="grid gap-2">
               <Label htmlFor="content">Note Content</Label>
               <Textarea
                 id="content"
-                placeholder="Enter your notes about the patient here..."
+                placeholder="Enter your notes..."
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
                 rows={6}
@@ -777,7 +618,6 @@ export default function PatientNotes() {
               />
             </div>
           </div>
-
           <DialogFooter>
             <Button
               variant="outline"
@@ -796,61 +636,51 @@ export default function PatientNotes() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Note Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
             <DialogTitle>Edit Note</DialogTitle>
-            <DialogDescription>
-              Update the content of your note
-            </DialogDescription>
           </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            {editingNote && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground">Date</Label>
-                    <div className="mt-1">
-                      {format(new Date(editingNote.created_at), "MMM d, yyyy")}
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Appointment</Label>
-                    <div className="mt-1">
-                      {editingNote.service.service_type} -{" "}
-                      {format(
-                        new Date(editingNote.service.start_time),
-                        "h:mm a"
-                      )}
-                    </div>
+          {editingNote && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Date</Label>
+                  <div className="mt-1 font-medium">
+                    {format(new Date(editingNote.created_at), "MMM d, yyyy")}
                   </div>
                 </div>
-
                 <div>
                   <Label className="text-muted-foreground">Patient</Label>
-                  <div className="mt-1">
-                    {editingNote.serviceParticipant
-                      ? `${editingNote.serviceParticipant.patient.user.first_name} ${editingNote.serviceParticipant.patient.user.last_name}`
-                      : "No patient selected"}
+                  <div className="mt-1 font-medium">
+                    {editingNote.patient.user.first_name}{" "}
+                    {editingNote.patient.user.last_name}
                   </div>
                 </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-content">Note Content</Label>
-                  <Textarea
-                    id="edit-content"
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    rows={6}
-                    className="resize-none"
-                  />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Appointment</Label>
+                <div className="mt-1 font-medium">
+                  {editingNote.service
+                    ? `${editingNote.service.service_type} - ${format(
+                        new Date(editingNote.service.start_time),
+                        "h:mm a"
+                      )}`
+                    : "General Note"}
                 </div>
-              </>
-            )}
-          </div>
-
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-content">Note Content</Label>
+                <Textarea
+                  id="edit-content"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={6}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -869,7 +699,6 @@ export default function PatientNotes() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -879,7 +708,6 @@ export default function PatientNotes() {
               undone.
             </DialogDescription>
           </DialogHeader>
-
           <DialogFooter>
             <Button
               variant="outline"

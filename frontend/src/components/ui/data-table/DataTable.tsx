@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+
 import { DataTableToolbar } from "./DataTableAdvancedFilter";
 
 interface DataTableProps<TData, TValue> {
@@ -39,7 +40,10 @@ interface DataTableProps<TData, TValue> {
     title: string;
   }[];
   pagination?: boolean;
-  initialSorting?: SortingState; // Add this prop
+  defaultSorting?: SortingState;
+  // ADDED: sorting and setSorting for controlled usage
+  sorting?: SortingState;
+  setSorting?: React.Dispatch<React.SetStateAction<SortingState>>;
 }
 
 export function DataTable<TData, TValue>({
@@ -50,17 +54,49 @@ export function DataTable<TData, TValue>({
   filterableColumns = [],
   searchableColumns = [],
   pagination = true,
-  initialSorting = [], // Default to empty array
+  defaultSorting = [], // Use this for internal state initialization
+  sorting: controlledSorting, // Renamed to controlledSorting for clarity
+  setSorting: setControlledSorting, // Renamed to setControlledSorting for clarity
 }: DataTableProps<TData, TValue>) {
-  // Use initialSorting in the useState initialization
-  const [sorting, setSorting] = useState<SortingState>(initialSorting);
+  // Determine if sorting is controlled by props
+  const isControlledSorting =
+    controlledSorting !== undefined && setControlledSorting !== undefined;
+
+  // Use internal state only if not controlled by parent
+  const [internalSorting, setInternalSorting] = useState<SortingState>(
+    isControlledSorting ? controlledSorting : defaultSorting // Initialize with controlled or default
+  );
+
+  // Memoize the effective sorting state and setter based on whether it's controlled
+  const [currentSorting, currentSetSorting] = React.useMemo(() => {
+    if (isControlledSorting) {
+      return [controlledSorting, setControlledSorting];
+    }
+    return [internalSorting, setInternalSorting];
+  }, [
+    isControlledSorting,
+    controlledSorting,
+    setControlledSorting,
+    internalSorting,
+    setInternalSorting,
+  ]);
+
+  // Keep internal state in sync with controlledSorting if it changes and we're controlled
+  // This useEffect ensures that if the parent passes a new 'controlledSorting' array
+  // when the component is being controlled, the internal state reflects it.
+  React.useEffect(() => {
+    if (isControlledSorting && controlledSorting !== internalSorting) {
+      // Only update internal state if it's different to prevent infinite loops
+      // if controlledSorting is not perfectly memoized by the parent.
+      setInternalSorting(controlledSorting);
+    }
+  }, [isControlledSorting, controlledSorting, internalSorting]); // Added internalSorting to deps
+
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [globalFilter, setGlobalFilter] = useState("");
-  // Add state for current page
   const [pageIndex, setPageIndex] = useState(0);
 
-  // Determine searchable columns based on props
   const effectiveSearchableColumns =
     searchableColumns.length > 0
       ? searchableColumns
@@ -68,28 +104,28 @@ export function DataTable<TData, TValue>({
       ? [{ id: searchKey, title: searchKey.split(".").pop() || searchKey }]
       : [];
 
-  // Create the table instance
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
+    // Use the determined currentSetSorting and currentSorting here
+    onSortingChange: currentSetSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: pagination ? getPaginationRowModel() : undefined,
     state: {
-      sorting,
+      // Use the determined currentSorting here
+      sorting: currentSorting,
       columnFilters,
       globalFilter,
       pagination: pagination
         ? {
-            pageIndex, // Use the state value
+            pageIndex,
             pageSize: rowsPerPage,
           }
         : undefined,
     },
-    // Add pagination handlers
     onPaginationChange: pagination
       ? (updater) => {
           if (typeof updater === "function") {
@@ -105,7 +141,6 @@ export function DataTable<TData, TValue>({
           }
         }
       : undefined,
-    // Custom filter function for global search
     filterFns: {
       globalSearch: (row, columnId, value) => {
         const searchValue = String(value).toLowerCase();
@@ -113,12 +148,9 @@ export function DataTable<TData, TValue>({
         return cellValue.includes(searchValue);
       },
     },
-    // This is the key part - apply globalFilter to search across columns
     globalFilterFn: (row, _columnId, filterValue) => {
-      // Skip empty searches
       if (!filterValue || filterValue === "") return true;
 
-      // Search all searchable columns
       const searchValue = String(filterValue).toLowerCase();
 
       return effectiveSearchableColumns.some((column) => {
@@ -131,7 +163,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      {/* DataTableToolbar component */}
       <DataTableToolbar
         table={table}
         filterableColumns={filterableColumns}
@@ -141,7 +172,6 @@ export function DataTable<TData, TValue>({
         searchPlaceholder={searchPlaceholder}
       />
 
-      {/* Table with shadow for better visibility */}
       <div className="rounded-md border shadow-sm">
         <Table>
           <TableHeader>
@@ -191,7 +221,6 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination controls - fixed with proper event handlers */}
       {pagination && (
         <div className="flex items-center justify-between px-2">
           <div className="flex-1 text-sm text-muted-foreground">

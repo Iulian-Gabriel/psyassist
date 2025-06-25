@@ -311,24 +311,22 @@ export const updateEmployee = async (
 };
 
 // Get current employee
+// The new, correct version
 export const getCurrentEmployee = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.userId;
+    // FIX: Changed req.userId to req.user?.userId
+    const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ message: "Not authenticated" });
       return;
     }
 
-    // Convert userId to number if it's a string
-    const userIdNumber =
-      typeof userId === "string" ? parseInt(userId, 10) : userId;
-
-    // Get the employee data for the current user
+    // No need to convert to number, it's already a number
     const employee = await prisma.employee.findUnique({
-      where: { user_id: userIdNumber },
+      where: { user_id: userId },
       include: {
         doctor: true,
       },
@@ -339,10 +337,8 @@ export const getCurrentEmployee = async (
       return;
     }
 
-    // Check if doctor property exists before accessing it
     const doctorId = employee.doctor ? employee.doctor.doctor_id : null;
 
-    // Return employee data with doctor ID if applicable
     res.json({
       employeeId: employee.employee_id,
       doctorId: doctorId,

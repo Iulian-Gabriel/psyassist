@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import prisma from "../utils/prisma";
 import * as userService from "../services/userService";
 import { AuthenticatedRequest } from "./auth";
@@ -10,12 +10,14 @@ export const authorizeAdmin = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!req.userId) {
+    // FIX: Changed req.userId to req.user?.userId
+    if (!req.user?.userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
-    const userWithRoles = await userService.findByIdWithRoles(req.userId);
+    // FIX: Changed req.userId to req.user.userId
+    const userWithRoles = await userService.findByIdWithRoles(req.user.userId);
 
     if (!userWithRoles || !userWithRoles.roles) {
       res.status(403).json({ message: "User roles not found" });
@@ -45,12 +47,14 @@ export const authorizeDoctor = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!req.userId) {
+    // FIX: Changed req.userId to req.user?.userId
+    if (!req.user?.userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
-    const userWithRoles = await userService.findByIdWithRoles(req.userId);
+    // FIX: Changed req.userId to req.user.userId
+    const userWithRoles = await userService.findByIdWithRoles(req.user.userId);
 
     if (!userWithRoles || !userWithRoles.roles) {
       res.status(403).json({ message: "User roles not found" });
@@ -80,12 +84,14 @@ export const authorizeStaff = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!req.userId) {
+    // FIX: Changed req.userId to req.user?.userId
+    if (!req.user?.userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
-    const userWithRoles = await userService.findByIdWithRoles(req.userId);
+    // FIX: Changed req.userId to req.user.userId
+    const userWithRoles = await userService.findByIdWithRoles(req.user.userId);
 
     if (!userWithRoles || !userWithRoles.roles) {
       res.status(403).json({ message: "User roles not found" });
@@ -115,14 +121,14 @@ export const authorizeReceptionist = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (!req.userId) {
+    // FIX: Changed req.userId to req.user?.userId
+    if (!req.user?.userId) {
       res.status(401).json({ message: "Not authenticated" });
       return;
     }
 
-    // Convert userId to number if it's a string
-    const userIdNumber =
-      typeof req.userId === "string" ? parseInt(req.userId, 10) : req.userId;
+    // FIX: Changed req.userId to req.user.userId
+    const userIdNumber = req.user.userId;
 
     // Check if the user has the receptionist role
     const userRoles = await prisma.userRoles.findMany({

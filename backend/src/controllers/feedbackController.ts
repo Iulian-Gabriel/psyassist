@@ -8,39 +8,89 @@ export const getAllFeedback = async (
   res: Response
 ): Promise<void> => {
   try {
-    const feedback = await prisma.feedback.findMany({
-      include: {
-        service: {
-          include: {
-            doctor: {
+    console.log(`[getAllFeedback] Starting fetch for all feedback.`);
+
+    // Get all feedback without any includes first
+    const allFeedback = await prisma.feedback.findMany({
+      orderBy: { submission_date: "desc" },
+    });
+
+    console.log(`[getAllFeedback] Raw feedback count: ${allFeedback.length}`);
+
+    // Now safely add relationships
+    const feedbackWithRelations = await Promise.all(
+      allFeedback.map(async (feedback) => {
+        let service = null;
+        let serviceParticipant = null;
+
+        // Only try to fetch service if service_id exists
+        if (feedback.service_id) {
+          try {
+            service = await prisma.service.findUnique({
+              where: { service_id: feedback.service_id },
               include: {
-                employee: {
+                doctor: {
                   include: {
-                    user: true,
+                    employee: {
+                      include: {
+                        user: {
+                          select: {
+                            first_name: true,
+                            last_name: true,
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },
-            },
-          },
-        },
-        serviceParticipant: {
-          include: {
-            patient: {
-              include: {
-                user: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        submission_date: "desc",
-      },
-    });
+            });
+          } catch (error) {
+            console.warn(
+              `Service ${feedback.service_id} not found for feedback ${feedback.feedback_id}`
+            );
+          }
+        }
 
-    res.json(feedback);
+        // Only try to fetch participant if participant_id exists
+        if (feedback.participant_id) {
+          try {
+            serviceParticipant = await prisma.serviceParticipant.findUnique({
+              where: { participant_id: feedback.participant_id },
+              include: {
+                patient: {
+                  include: {
+                    user: {
+                      select: {
+                        first_name: true,
+                        last_name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          } catch (error) {
+            console.warn(
+              `Participant ${feedback.participant_id} not found for feedback ${feedback.feedback_id}`
+            );
+          }
+        }
+
+        return {
+          ...feedback,
+          service,
+          serviceParticipant,
+        };
+      })
+    );
+
+    console.log(
+      `[getAllFeedback] Successfully processed ${feedbackWithRelations.length} feedback records`
+    );
+    res.json(feedbackWithRelations);
   } catch (error) {
-    console.error("Error fetching feedback:", error);
+    console.error("Error fetching all feedback:", error);
     res.status(500).json({ message: "Failed to fetch feedback" });
   }
 };
@@ -179,7 +229,11 @@ export const createFeedback = async (
       rating_score,
       comments,
       is_anonymous,
-      feedback_target, // This comes from frontend as "doctor" or "clinic"
+      feedback_target,
+      is_clean_facilities,
+      is_friendly_staff,
+      is_easy_accessibility,
+      is_smooth_admin_process,
     } = req.body;
 
     // Validate required fields
@@ -194,17 +248,32 @@ export const createFeedback = async (
     const target_type =
       feedback_target.toUpperCase() === "CLINIC" ? "SERVICE" : "DOCTOR";
 
+    // Prepare data for Prisma create
+    const feedbackData: any = {
+      service_id: parseInt(service_id),
+      participant_id: parseInt(participant_id),
+      rating_score: rating_score ? parseInt(rating_score) : null,
+      comments, // This will now only contain general free-text comments
+      is_anonymous: is_anonymous === true,
+      submission_date: new Date(),
+      target_type: target_type,
+    };
+
+    // If providing clinic feedback, include only the four specified boolean fields
+    if (target_type === "SERVICE") {
+      if (typeof is_clean_facilities === "boolean")
+        feedbackData.is_clean_facilities = is_clean_facilities;
+      if (typeof is_friendly_staff === "boolean")
+        feedbackData.is_friendly_staff = is_friendly_staff;
+      if (typeof is_easy_accessibility === "boolean")
+        feedbackData.is_easy_accessibility = is_easy_accessibility;
+      if (typeof is_smooth_admin_process === "boolean")
+        feedbackData.is_smooth_admin_process = is_smooth_admin_process;
+    }
+
     // Create the feedback
     const feedback = await prisma.feedback.create({
-      data: {
-        service_id: parseInt(service_id),
-        participant_id: parseInt(participant_id),
-        rating_score: rating_score ? parseInt(rating_score) : null,
-        comments,
-        is_anonymous: is_anonymous === true,
-        submission_date: new Date(),
-        target_type: target_type, // Use the enum value directly
-      },
+      data: feedbackData,
       include: {
         service: true,
         serviceParticipant: true,
@@ -427,7 +496,7 @@ export const getDoctorAllFeedback = async (
     }
 
     // Get all feedback related to this doctor's services
-    const feedback = await prisma.feedback.findMany({
+    const doctorServicesFeedback = await prisma.feedback.findMany({
       where: {
         service: {
           doctor: {
@@ -474,16 +543,98 @@ export const getDoctorAllFeedback = async (
       },
     });
 
-    // Categorize the feedback
+    // Only get doctor-specific feedback, not clinic feedback without service
+    // This ensures doctors only see feedback explicitly about them
     const categorizedFeedback = {
-      all: feedback,
-      doctorSpecific: feedback.filter((item) => item.target_type === "DOCTOR"),
-      clinicFeedback: feedback.filter((item) => item.target_type === "SERVICE"),
+      all: doctorServicesFeedback,
+      doctorSpecific: doctorServicesFeedback.filter(
+        (item) => item.target_type === "DOCTOR"
+      ),
+      clinicFeedback: [], // Doctors no longer see any clinic feedback
     };
 
     res.json(categorizedFeedback);
   } catch (error) {
     console.error("Error fetching doctor's feedback:", error);
     res.status(500).json({ message: "Failed to fetch feedback" });
+  }
+};
+
+// Add this new function to your feedbackController.ts
+
+export const createGeneralClinicFeedback = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const {
+      patient_id,
+      rating_score,
+      comments,
+      is_anonymous,
+      is_clean_facilities,
+      is_friendly_staff,
+      is_easy_accessibility,
+      is_smooth_admin_process,
+    } = req.body;
+
+    // Validate required fields
+    if (!patient_id) {
+      res.status(400).json({
+        message: "Patient ID is required",
+      });
+      return;
+    }
+
+    const patientId = parseInt(patient_id);
+    if (isNaN(patientId)) {
+      res.status(400).json({ message: "Invalid patient ID" });
+      return;
+    }
+
+    // Find the patient to ensure they exist
+    const patient = await prisma.patient.findUnique({
+      where: { patient_id: patientId },
+    });
+
+    if (!patient) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    // Create feedback directly without service/participant
+    const feedbackData: any = {
+      // We're not setting service_id or participant_id
+      rating_score: rating_score ? parseInt(rating_score) : null,
+      comments,
+      is_anonymous: is_anonymous === true,
+      submission_date: new Date(),
+      target_type: "SERVICE", // Always SERVICE for general clinic feedback
+      // Store patient_id in a comment field to track who submitted it
+      // This isn't ideal but helps with tracking without schema changes
+      patient_source_id: patientId,
+    };
+
+    // Add clinic-specific boolean fields
+    if (typeof is_clean_facilities === "boolean")
+      feedbackData.is_clean_facilities = is_clean_facilities;
+    if (typeof is_friendly_staff === "boolean")
+      feedbackData.is_friendly_staff = is_friendly_staff;
+    if (typeof is_easy_accessibility === "boolean")
+      feedbackData.is_easy_accessibility = is_easy_accessibility;
+    if (typeof is_smooth_admin_process === "boolean")
+      feedbackData.is_smooth_admin_process = is_smooth_admin_process;
+
+    // Create the feedback without relations
+    const feedback = await prisma.feedback.create({
+      data: feedbackData,
+    });
+
+    res.status(201).json(feedback);
+  } catch (error) {
+    console.error("Error creating general clinic feedback:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to create general clinic feedback" });
   }
 };

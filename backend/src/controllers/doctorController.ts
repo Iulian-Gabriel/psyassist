@@ -355,19 +355,14 @@ export const getCurrentDoctor = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.userId;
+    const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ message: "Not authenticated" });
       return;
     }
 
-    // Convert userId to number if it's a string
-    const userIdNumber =
-      typeof userId === "string" ? parseInt(userId, 10) : userId;
-
-    // First get the employee for this user
     const employee = await prisma.employee.findUnique({
-      where: { user_id: userIdNumber },
+      where: { user_id: userId },
     });
 
     if (!employee) {
@@ -375,7 +370,6 @@ export const getCurrentDoctor = async (
       return;
     }
 
-    // Then get the doctor record for this employee
     const doctor = await prisma.doctor.findUnique({
       where: { employee_id: employee.employee_id },
     });
@@ -385,7 +379,6 @@ export const getCurrentDoctor = async (
       return;
     }
 
-    // Return doctor data
     res.json({
       doctorId: doctor.doctor_id,
       employeeId: employee.employee_id,
@@ -396,5 +389,92 @@ export const getCurrentDoctor = async (
   } catch (error) {
     console.error("Error getting current doctor:", error);
     res.status(500).json({ message: "Failed to fetch doctor data" });
+  }
+};
+
+export const getDoctorPatients = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Not authenticated" });
+      return;
+    }
+
+    // 1. Find the Doctor profile associated with the logged-in User
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        employee: {
+          // Navigate through the 'employee' relation from Doctor to Employee
+          user_id: userId, // Match the user_id from the authenticated token
+        },
+      },
+      select: {
+        doctor_id: true, // We need the doctor_id to filter services
+      },
+    });
+
+    if (!doctor) {
+      // If the authenticated user is not associated with a doctor profile.
+      // Returning 403 (Forbidden) is more accurate than 404 here, as the user might exist,
+      // but they don't have the required doctor role/profile for this action.
+      res.status(403).json({
+        message: "Access denied. User is not associated with a doctor profile.",
+      });
+      return;
+    }
+
+    // 2. Find all unique patients who have participated in services
+    //    where this doctor (`doctor.doctor_id`) was the assigned doctor.
+    const patients = await prisma.patient.findMany({
+      where: {
+        serviceParticipants: {
+          // A patient must have participated in a service
+          some: {
+            // At least one service participant record exists
+            service: {
+              // And that service is linked to this doctor
+              // Based on your schema: Service.employee_id is the foreign key
+              // that references Doctor.doctor_id.
+              employee_id: doctor.doctor_id, // Use the doctor_id we just retrieved
+            },
+          },
+        },
+        user: {
+          is_active: true, // Only include active patients
+        },
+      },
+      include: {
+        user: {
+          // Include related user data for display
+          select: {
+            user_id: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+            // Add any other user fields you need
+          },
+        },
+      },
+      orderBy: {
+        user: {
+          last_name: "asc", // Order results for better readability
+        },
+      },
+      distinct: ["patient_id"], // Ensure each patient is listed only once
+    });
+
+    // The 'patients' array now directly contains the Patient objects
+    // with their associated User data, as fetched by Prisma.
+    res.json(patients);
+  } catch (error) {
+    console.error("Error fetching doctor's patients:", error);
+    // Provide a more generic error message for security/simplicity
+    res.status(500).json({
+      message:
+        "Failed to fetch doctor's patients due to an internal server error.",
+    });
   }
 };

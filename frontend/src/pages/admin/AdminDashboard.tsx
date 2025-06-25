@@ -261,8 +261,8 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Patient Feedback Card - Not Implemented */}
-        <NotImplementedCard>
+        {/* Patient Feedback Card - Implemented */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               Patient Feedback
@@ -274,17 +274,12 @@ export default function AdminDashboard() {
               View feedback from patients
             </p>
             <div className="space-y-2">
-              <Link to="/admin/doctor/feedback">
+              <Link to="/admin/feedback">
                 <Button className="w-full">View All Feedback</Button>
-              </Link>
-              <Link to="/admin/doctor/feedback/request">
-                <Button className="w-full" variant="outline">
-                  Request New Feedback
-                </Button>
               </Link>
             </div>
           </CardContent>
-        </NotImplementedCard>
+        </Card>
       </div>
 
       {/* Receptionist Section - These are implemented based on your file structure */}

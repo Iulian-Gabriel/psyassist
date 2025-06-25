@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "FEEDBACK" ALTER COLUMN "service_id" DROP NOT NULL,
+ALTER COLUMN "participant_id" DROP NOT NULL;

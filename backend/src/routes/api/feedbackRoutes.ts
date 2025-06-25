@@ -43,4 +43,11 @@ router.put("/:id", authenticateToken, feedbackController.updateFeedback);
 // Delete feedback
 router.delete("/:id", authenticateToken, feedbackController.deleteFeedback);
 
+// Route for general clinic feedback (without service selection)
+router.post(
+  "/general-clinic",
+  authenticateToken,
+  feedbackController.createGeneralClinicFeedback
+);
+
 export default router;

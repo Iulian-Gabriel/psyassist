@@ -200,7 +200,7 @@ export const getPatientTests = async (
 ): Promise<void> => {
   try {
     const patientId = parseInt(req.params.id);
-    const userId = req.userId;
+    const userId = req.user?.userId;
 
     if (isNaN(patientId)) {
       res.status(400).json({ message: "Invalid patient ID" });
@@ -215,7 +215,7 @@ export const getPatientTests = async (
     });
 
     // If the patient doesn't exist or user_id doesn't match the request user
-    if (!patient || patient.user_id !== parseInt(userId as string)) {
+    if (!patient || patient.user_id !== req.user?.userId) {
       // Convert userId to number for comparison (fixes the third error too)
       res.status(403).json({ message: "Not authorized to view these tests" });
       return;

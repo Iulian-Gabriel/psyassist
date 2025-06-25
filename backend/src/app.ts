@@ -18,6 +18,7 @@ import noticesRoutes from "./routes/api/noticesRoutes";
 import feedbackRoutes from "./routes/api/feedbackRoutes";
 import serviceRequestRoutes from "./routes/api/serviceRequestRoutes";
 import serviceTypeRoutes from "./routes/api/serviceTypeRoutes";
+import doctorRoutes from "./routes/api/doctorRoutes";
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/notices", noticesRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/service-requests", serviceRequestRoutes);
+app.use("/api/doctor", doctorRoutes);
 app.use("/api/service-types", serviceTypeRoutes);
 
 // --- Error Handling Middleware ---

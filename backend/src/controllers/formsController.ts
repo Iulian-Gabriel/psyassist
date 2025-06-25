@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import prisma from "../utils/prisma";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { config } from "../config/env"; // Add this import
 
 // Schema for creating a form/test template
 const CreateTestFormSchema = z.object({
@@ -32,19 +31,10 @@ export const getAllForms = async (req: AuthenticatedRequest, res: Response) => {
       orderBy: {
         test_template_id: "desc",
       },
-      include: {
-        testTemplateVersions: {
-          take: 1,
-          orderBy: {
-            version: "desc",
-          },
-        },
-      },
     });
 
     const forms = testTemplates.map((template) => {
-      // Prisma already parsed template_questions into an object.
-      // We just need to safely access the 'description' property.
+      // This logic will now work correctly for all records
       const templateData = template.template_questions as {
         description?: string;
       } | null;
@@ -52,9 +42,8 @@ export const getAllForms = async (req: AuthenticatedRequest, res: Response) => {
       return {
         form_id: template.test_template_id,
         title: template.name || "Untitled Form",
-        // Safely access the description from the already-parsed object
         description: templateData?.description || null,
-        created_at: new Date().toISOString(),
+        created_at: new Date().toISOString(), // This seems to be placeholder, consider using actual creation date
         user: {
           first_name: "System",
           last_name: "User",
@@ -72,7 +61,7 @@ export const getAllForms = async (req: AuthenticatedRequest, res: Response) => {
 
 export const createForm = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.userId;
+    const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
@@ -80,20 +69,18 @@ export const createForm = async (req: AuthenticatedRequest, res: Response) => {
 
     const validatedData = CreateTestFormSchema.parse(req.body);
 
-    // Create test template
     const template = await prisma.testTemplate.create({
       data: {
         name: validatedData.name,
         isActive: true,
         isExternal: validatedData.isExternal || false,
-        // Fix: Convert to Prisma JSON type
+        // --- FIX: Pass a proper JSON object, not a string ---
         template_questions: validatedData.description
-          ? (JSON.stringify({ description: validatedData.description }) as any) // Cast as any to bypass type checking
-          : undefined, // Use undefined instead of null
+          ? { description: validatedData.description }
+          : undefined,
         testTemplateVersions: {
           create: {
             version: 1,
-            // This is the cleaner way to store JSON data
             questionsJson: validatedData.questions as any,
           },
         },
@@ -103,14 +90,15 @@ export const createForm = async (req: AuthenticatedRequest, res: Response) => {
       },
     });
 
+    const templateData = template.template_questions as {
+      description?: string;
+    } | null;
+
     res.status(201).json({
       form: {
         form_id: template.test_template_id,
         title: template.name,
-        // Parse the JSON back to extract the description
-        description: template.template_questions
-          ? JSON.parse(String(template.template_questions)).description
-          : null,
+        description: templateData?.description || null,
         created_at: template.testTemplateVersions[0]?.created_at,
         version: template.testTemplateVersions[0]?.version || 1,
       },
@@ -132,7 +120,6 @@ export const getFormResponses = async (
       return;
     }
 
-    // Get the form with its responses
     const template = await prisma.testTemplate.findUnique({
       where: {
         test_template_id: formId,
@@ -140,9 +127,7 @@ export const getFormResponses = async (
       },
       include: {
         testTemplateVersions: {
-          orderBy: {
-            version: "desc",
-          },
+          orderBy: { version: "desc" },
           take: 1,
           include: {
             testInstances: {
@@ -165,13 +150,7 @@ export const getFormResponses = async (
     }
 
     const latestVersion = template.testTemplateVersions[0];
-
-    // ✨ CHANGE THIS PART ✨
-    // No need to parse, Prisma already returns it as an object
-    // Check if it exists and provide a default empty array
     const questions = latestVersion?.questionsJson || [];
-
-    // Transform responses into a more frontend-friendly format
     const responses =
       latestVersion?.testInstances.map((instance) => ({
         responseId: String(instance.test_instance_id),
@@ -181,34 +160,15 @@ export const getFormResponses = async (
         answers: instance.patientResponse || {},
       })) || [];
 
-    // ✨ ALSO FIX THIS PART ✨
-    // Handle template_questions as a JSON object, not a string
-    let description = null;
-    if (template.template_questions) {
-      try {
-        // Check if it's a string that needs parsing or already an object
-        if (typeof template.template_questions === "string") {
-          const parsedData = JSON.parse(template.template_questions);
-          description = parsedData?.description || null;
-        } else {
-          // It's already an object, but we need to type check it first
-          const jsonObj = template.template_questions as Record<
-            string,
-            unknown
-          >;
-          description = "description" in jsonObj ? jsonObj.description : null;
-        }
-      } catch (e) {
-        console.error("Error handling template_questions:", e);
-      }
-    }
+    const templateData = template.template_questions as {
+      description?: string;
+    } | null;
 
-    // Send the response back to the client
     res.json({
       form: {
         form_id: template.test_template_id,
         title: template.name || "Untitled Form",
-        description: description,
+        description: templateData?.description || null,
         created_at: latestVersion?.created_at || new Date(),
         user: {
           first_name: "System",
@@ -229,7 +189,7 @@ export const updateForm = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.userId;
+    const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
       return;
@@ -243,17 +203,11 @@ export const updateForm = async (
 
     const validatedData = CreateTestFormSchema.parse(req.body);
 
-    // First, check if the form exists and get the latest version
     const existingTemplate = await prisma.testTemplate.findUnique({
-      where: {
-        test_template_id: formId,
-        isActive: true,
-      },
+      where: { test_template_id: formId, isActive: true },
       include: {
         testTemplateVersions: {
-          orderBy: {
-            version: "desc",
-          },
+          orderBy: { version: "desc" },
           take: 1,
         },
       },
@@ -264,28 +218,32 @@ export const updateForm = async (
       return;
     }
 
-    // Calculate the next version number
     const latestVersion =
       existingTemplate.testTemplateVersions[0]?.version || 0;
     const newVersionNumber = latestVersion + 1;
 
-    // Update basic template info and create a new version
+    const dataToUpdate: {
+      name: string;
+      isExternal: boolean;
+      template_questions?: { description: string };
+    } = {
+      name: validatedData.name,
+      isExternal: validatedData.isExternal,
+    };
+
+    // --- FIX: Pass a proper JSON object, not a string ---
+    if (validatedData.description) {
+      dataToUpdate.template_questions = {
+        description: validatedData.description,
+      };
+    }
+
     const updatedTemplate = await prisma.$transaction(async (tx) => {
-      // Update the template
       const template = await tx.testTemplate.update({
         where: { test_template_id: formId },
-        data: {
-          name: validatedData.name,
-          template_questions: validatedData.description
-            ? (JSON.stringify({
-                description: validatedData.description,
-              }) as any)
-            : undefined,
-          isExternal: validatedData.isExternal,
-        },
+        data: dataToUpdate,
       });
 
-      // Create a new version
       const newVersion = await tx.testTemplateVersion.create({
         data: {
           test_template_id: formId,
@@ -297,30 +255,15 @@ export const updateForm = async (
       return { template, newVersion };
     });
 
-    // Extract description
-    let description = null;
-    if (updatedTemplate.template.template_questions) {
-      try {
-        if (typeof updatedTemplate.template.template_questions === "string") {
-          const parsedData = JSON.parse(
-            String(updatedTemplate.template.template_questions)
-          );
-          description = parsedData.description;
-        } else {
-          const templateQuestions = updatedTemplate.template
-            .template_questions as any;
-          description = templateQuestions.description;
-        }
-      } catch (e) {
-        console.error("Error parsing template_questions:", e);
-      }
-    }
+    const templateData = updatedTemplate.template.template_questions as {
+      description?: string;
+    } | null;
 
     res.json({
       form: {
         form_id: updatedTemplate.template.test_template_id,
         title: updatedTemplate.template.name,
-        description: description,
+        description: templateData?.description || null,
         version: updatedTemplate.newVersion.version,
         created_at: updatedTemplate.newVersion.created_at,
       },
@@ -335,12 +278,11 @@ export const getFormVersions = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  // Change return type to Promise<void>
   try {
     const formId = parseInt(req.params.id);
     if (isNaN(formId)) {
       res.status(400).json({ message: "Invalid form ID" });
-      return; // Just return, don't return the response
+      return;
     }
 
     const form = await prisma.testTemplate.findUnique({
@@ -350,41 +292,26 @@ export const getFormVersions = async (
       },
       include: {
         testTemplateVersions: {
-          orderBy: {
-            version: "desc",
-          },
-          include: {
-            _count: {
-              select: {
-                testInstances: true,
-              },
-            },
-          },
+          orderBy: { version: "desc" },
+          include: { _count: { select: { testInstances: true } } },
         },
       },
     });
 
     if (!form) {
       res.status(404).json({ message: "Form not found" });
-      return; // Just return, don't return the response
+      return;
     }
 
-    // Extract description from template_questions
-    let description = null;
-    if (form.template_questions) {
-      try {
-        const parsedData = JSON.parse(form.template_questions.toString());
-        description = parsedData.description;
-      } catch (e) {
-        console.error("Error parsing template_questions:", e);
-      }
-    }
+    const templateData = form.template_questions as {
+      description?: string;
+    } | null;
 
     res.json({
       form: {
         form_id: form.test_template_id,
         title: form.name || "Untitled Form",
-        description: description,
+        description: templateData?.description || null,
         isActive: form.isActive,
       },
       versions: form.testTemplateVersions.map((v) => ({
@@ -394,10 +321,8 @@ export const getFormVersions = async (
         responseCount: v._count.testInstances,
       })),
     });
-    // No return statement needed here
   } catch (error) {
     console.error("Error fetching form versions:", error);
     res.status(500).json({ message: "Failed to fetch form versions" });
-    // No return statement needed here
   }
 };

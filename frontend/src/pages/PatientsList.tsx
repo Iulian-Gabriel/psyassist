@@ -1,3 +1,4 @@
+// src/pages/PatientsList.tsx (REPLACE WITH THIS ENHANCED VERSION)
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/services/api";
@@ -7,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
 
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { ColumnHeader } from "@/components/ui/data-table/ColumnHeader";
 
@@ -26,7 +26,15 @@ interface Patient {
   emergency_contact_phone?: string;
 }
 
-export default function PatientsList() {
+// Define props for the component
+interface PatientsListProps {
+  isDoctorView?: boolean; // New prop to indicate if it's rendered for a doctor
+}
+
+// Pass props into the functional component
+export default function PatientsList({
+  isDoctorView = false,
+}: PatientsListProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +48,11 @@ export default function PatientsList() {
     const fetchPatients = async () => {
       try {
         setLoading(true);
-        const response = await api.get("/patients");
+        let endpoint = "/patients"; // Default for admin view
+        if (isDoctorView) {
+          endpoint = "/doctor/current/patients"; // Doctor-specific endpoint
+        }
+        const response = await api.get(endpoint);
         setPatients(response.data);
       } catch (err) {
         console.error("Failed to fetch patients:", err);
@@ -51,14 +63,15 @@ export default function PatientsList() {
     };
 
     fetchPatients();
-  }, []);
+  }, [isDoctorView]); // Re-fetch if isDoctorView changes
 
   // Define searchable columns for multiple search
   const searchableColumns = [
     { id: "name", title: "Name" },
     { id: "email", title: "Email" },
     { id: "phone", title: "Phone" },
-    { id: "emergency_contact", title: "Emergency Contact" },
+    { id: "emergency_contact_name", title: "Emergency Contact Name" },
+    { id: "emergency_contact_phone", title: "Emergency Contact Phone" },
   ];
 
   // Define filterable columns
@@ -73,15 +86,12 @@ export default function PatientsList() {
     },
   ];
 
-  // Add this function inside the component
   const handleDeactivate = async (patientId: number) => {
     if (!confirm("Are you sure you want to deactivate this patient?")) {
       return;
     }
-
     try {
       await api.patch(`/patients/${patientId}/deactivate`);
-      // Refresh the patients list after deactivation
       setPatients(
         patients.map((patient) =>
           patient.patient_id === patientId
@@ -95,15 +105,12 @@ export default function PatientsList() {
     }
   };
 
-  // Add function to reactivate patients
   const handleReactivate = async (patientId: number) => {
     if (!confirm("Are you sure you want to reactivate this patient?")) {
       return;
     }
-
     try {
       await api.patch(`/patients/${patientId}/reactivate`);
-      // Refresh the patients list after reactivation
       setPatients(
         patients.map((patient) =>
           patient.patient_id === patientId
@@ -118,8 +125,13 @@ export default function PatientsList() {
   };
 
   const handleEdit = (patientId: number) => {
-    // Navigate to edit patient page
-    navigate(`/admin/patients/${patientId}/edit`);
+    // Conditional navigation based on view
+    if (isDoctorView) {
+      // This path needs a corresponding route and component for doctor's patient details
+      navigate(`/doctor/patients/${patientId}/view-details`);
+    } else {
+      navigate(`/admin/patients/${patientId}/edit`); // Admin-specific edit
+    }
   };
 
   // Define columns with proper type annotation
@@ -183,57 +195,74 @@ export default function PatientsList() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          {row.original.user.is_active ? (
-            // Show Edit button if active
+          {/* Conditional rendering for edit/deactivate/reactivate buttons */}
+          {!isDoctorView ? ( // If it's the admin view
+            <>
+              {row.original.user.is_active ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(row.original.patient_id)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={() => handleReactivate(row.original.patient_id)}
+                  title="Reactivate Patient"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDeactivate(row.original.patient_id)}
+                disabled={!row.original.user.is_active}
+                title={
+                  row.original.user.is_active
+                    ? "Deactivate Patient"
+                    : "Patient Already Inactive"
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            // If it's the doctor view, only show the "Edit" (view details) button
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleEdit(row.original.patient_id)}
+              title="View Patient Details"
             >
               <Edit className="h-4 w-4" />
             </Button>
-          ) : (
-            // Show Reactivate button if inactive
-            <Button
-              variant="success" // Green button for reactivation
-              size="sm"
-              onClick={() => handleReactivate(row.original.patient_id)}
-              title="Reactivate Patient"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
           )}
-
-          {/* Always show Deactivate button, but disable it for inactive patients */}
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => handleDeactivate(row.original.patient_id)}
-            disabled={!row.original.user.is_active}
-            title={
-              row.original.user.is_active
-                ? "Deactivate Patient"
-                : "Patient Already Inactive"
-            }
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
       ),
     },
   ];
 
-  // In your return statement
+  // Adjust title and button links based on view
+  const pageTitle = isDoctorView ? "My Patients" : "Patients Management";
+  const backButtonLink = isDoctorView ? "/dashboard" : "/admin";
+  const addPatientButton = !isDoctorView && ( // Only show "Add Patient" in admin view
+    <Button onClick={() => navigate("/admin/add-patient")}>
+      <UserPlus className="mr-2 h-4 w-4" />
+      Add Patient
+    </Button>
+  );
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Patients Management</h1>
+        <h1 className="text-3xl font-bold">{pageTitle}</h1>
         <div className="flex gap-2">
-          <Button onClick={() => navigate("/admin/add-patient")}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Patient
-          </Button>
-          <Link to="/admin">
+          {addPatientButton}
+          <Link to={backButtonLink}>
             <Button variant="outline">Back to Dashboard</Button>
           </Link>
         </div>

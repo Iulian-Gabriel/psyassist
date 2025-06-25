@@ -31,7 +31,7 @@ router.use("/notices", noticesRoutes);
 router.use("/feedback", feedbackRoutes);
 router.use("/service-requests", serviceRequestRoutes);
 router.use("/service-types", serviceTypeRoutes);
-router.use("/doctors", doctorRoutes);
+router.use("/doctor", doctorRoutes);
 router.use("/receptionists", receptionistRoutes);
 
 export default router;

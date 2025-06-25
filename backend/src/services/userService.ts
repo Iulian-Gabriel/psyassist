@@ -103,13 +103,13 @@ export async function createUser(userData: UserCreateInput): Promise<User> {
   }
 }
 
-// Add a new function to get user with roles
+// --- THIS IS THE CORRECTED FUNCTION ---
 export async function findByIdWithRoles(
-  id: string
+  id: number // Changed from string to number
 ): Promise<(User & { roles?: Role[] }) | null> {
   try {
     const user = await prisma.user.findUnique({
-      where: { user_id: parseInt(id) },
+      where: { user_id: id }, // No longer need parseInt()
       include: {
         userRoles: {
           include: {

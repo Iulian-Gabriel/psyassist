@@ -17,24 +17,24 @@ export const getPatientNotes = async (
 
     const notes = await prisma.notes.findMany({
       where: {
-        serviceParticipant: {
-          patient_id: patientId,
-        },
+        patient_id: patientId,
       },
       include: {
-        service: {
+        doctor: {
           include: {
-            doctor: {
+            employee: {
               include: {
-                employee: {
-                  include: {
-                    user: true,
-                  },
-                },
+                user: true,
               },
             },
           },
         },
+        patient: {
+          include: {
+            user: true,
+          },
+        },
+        service: true,
         serviceParticipant: {
           include: {
             patient: {
@@ -117,39 +117,47 @@ export const createNote = async (
 ): Promise<void> => {
   try {
     const { serviceId, patientId, content } = req.body;
+    const loggedInUserId = req.user?.userId;
 
-    // Validate required fields - patientId is always required, serviceId is optional
-    if (!patientId || !content) {
+    // Validate required fields
+    if (!patientId || !content || !loggedInUserId) {
       res.status(400).json({
-        message: "Patient ID and content are required",
+        message: "Patient ID, content, and user authentication are required",
       });
+      return;
+    }
+
+    // Find the doctor associated with the logged-in user
+    const doctor = await prisma.doctor.findFirst({
+      where: { employee: { user_id: loggedInUserId } },
+    });
+
+    if (!doctor) {
+      res.status(403).json({ message: "Authenticated user is not a doctor" });
       return;
     }
 
     // Convert IDs to numbers
     const patientIdNum = parseInt(patientId);
-    let serviceIdNum: number | null = null;
-
-    if (serviceId) {
-      serviceIdNum = parseInt(serviceId);
-      // Validate serviceId is a number if provided
-      if (isNaN(serviceIdNum)) {
-        res.status(400).json({ message: "Invalid service ID" });
-        return;
-      }
-    }
-
-    // Validate patientId is a number
     if (isNaN(patientIdNum)) {
       res.status(400).json({ message: "Invalid patient ID" });
       return;
     }
 
-    let participantId: number | null = null;
+    const data: any = {
+      content,
+      patient_id: patientIdNum,
+      doctor_id: doctor.doctor_id,
+    };
 
-    // Only look for a participant if a service is provided
-    if (serviceIdNum !== null) {
-      // Find the participant record
+    // If a service is provided, find the participant and link them
+    if (serviceId) {
+      const serviceIdNum = parseInt(serviceId);
+      if (isNaN(serviceIdNum)) {
+        res.status(400).json({ message: "Invalid service ID" });
+        return;
+      }
+
       const participant = await prisma.serviceParticipant.findFirst({
         where: {
           service_id: serviceIdNum,
@@ -157,59 +165,36 @@ export const createNote = async (
         },
       });
 
-      if (!participant) {
-        res.status(404).json({
-          message:
-            "This patient is not associated with the selected appointment",
-        });
-        return;
+      if (participant) {
+        data.service_id = serviceIdNum;
+        data.participant_id = participant.participant_id;
+      } else {
+        // Optionally handle cases where the patient isn't in the specified service
+        console.warn(
+          `Patient ${patientIdNum} is not a participant in service ${serviceIdNum}. Note will be created without service link.`
+        );
       }
-
-      participantId = participant.participant_id;
-    }
-
-    // Prepare data for creating the note
-    const data: any = {
-      content,
-    };
-
-    // Add service_id and participant_id only if a service was selected
-    if (serviceIdNum !== null) {
-      data.service_id = serviceIdNum;
-
-      if (participantId !== null) {
-        data.participant_id = participantId;
-      }
-    } else {
-      // If no service is selected, create a "general" note for this patient
-      // This would require a schema change if your Notes table requires service_id
-      // You might need to make service_id optional in your schema or create a special "general notes" service
-
-      // For now, we'll use a default service ID for general notes (you'll need to create this service)
-      const generalServiceId = 1; // Replace with your default service ID for general notes
-      data.service_id = generalServiceId;
-
-      // Since there's no appointment involved, there's no participant record
-      // You'll need to decide how to handle this in your schema
     }
 
     // Create the note
     const note = await prisma.notes.create({
       data,
       include: {
-        service: {
+        doctor: {
           include: {
-            doctor: {
+            employee: {
               include: {
-                employee: {
-                  include: {
-                    user: true,
-                  },
-                },
+                user: true,
               },
             },
           },
         },
+        patient: {
+          include: {
+            user: true,
+          },
+        },
+        service: true,
         serviceParticipant: {
           include: {
             patient: {
@@ -322,50 +307,51 @@ export const deleteNote = async (
 };
 
 // Get all notes for a doctor's patients
+// Replace the old function with this corrected version
 export const getDoctorPatientNotes = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const doctorId = parseInt(req.params.doctorId);
-
-    if (isNaN(doctorId)) {
-      res.status(400).json({ message: "Invalid doctor ID" });
+    // This is the user_id of the logged-in doctor
+    const loggedInUserId = req.user?.userId;
+    if (!loggedInUserId) {
+      res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
-    // Find all notes for services provided by the doctor
+    // Find the doctor record associated with the user ID
+    const doctor = await prisma.doctor.findFirst({
+      where: { employee: { user_id: loggedInUserId } },
+    });
+
+    // If the user is not a doctor, return an empty array
+    if (!doctor) {
+      res.json([]);
+      return;
+    }
+
+    // Now, fetch all notes created by this specific doctor
     const notes = await prisma.notes.findMany({
       where: {
-        service: {
-          doctor: {
-            doctor_id: doctorId,
-          },
-        },
+        doctor_id: doctor.doctor_id,
       },
       include: {
-        service: {
+        doctor: {
           include: {
-            doctor: {
-              include: {
-                employee: {
-                  include: {
-                    user: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        serviceParticipant: {
-          include: {
-            patient: {
+            employee: {
               include: {
                 user: true,
               },
             },
           },
         },
+        patient: {
+          include: {
+            user: true,
+          },
+        },
+        service: true,
       },
       orderBy: {
         created_at: "desc",
