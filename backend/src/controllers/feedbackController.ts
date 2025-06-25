@@ -10,55 +10,14 @@ export const getAllFeedback = async (
   try {
     console.log(`[getAllFeedback] Starting fetch for all feedback.`);
 
-    // Get all feedback without any includes first
-    const allFeedback = await prisma.feedback.findMany({
+    const feedbackWithRelations = await prisma.feedback.findMany({
       orderBy: { submission_date: "desc" },
-    });
-
-    console.log(`[getAllFeedback] Raw feedback count: ${allFeedback.length}`);
-
-    // Now safely add relationships
-    const feedbackWithRelations = await Promise.all(
-      allFeedback.map(async (feedback) => {
-        let service = null;
-        let serviceParticipant = null;
-
-        // Only try to fetch service if service_id exists
-        if (feedback.service_id) {
-          try {
-            service = await prisma.service.findUnique({
-              where: { service_id: feedback.service_id },
+      include: {
+        service: {
+          include: {
+            doctor: {
               include: {
-                doctor: {
-                  include: {
-                    employee: {
-                      include: {
-                        user: {
-                          select: {
-                            first_name: true,
-                            last_name: true,
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            });
-          } catch (error) {
-            console.warn(
-              `Service ${feedback.service_id} not found for feedback ${feedback.feedback_id}`
-            );
-          }
-        }
-
-        // Only try to fetch participant if participant_id exists
-        if (feedback.participant_id) {
-          try {
-            serviceParticipant = await prisma.serviceParticipant.findUnique({
-              where: { participant_id: feedback.participant_id },
-              include: {
-                patient: {
+                employee: {
                   include: {
                     user: {
                       select: {
@@ -69,21 +28,25 @@ export const getAllFeedback = async (
                   },
                 },
               },
-            });
-          } catch (error) {
-            console.warn(
-              `Participant ${feedback.participant_id} not found for feedback ${feedback.feedback_id}`
-            );
-          }
-        }
-
-        return {
-          ...feedback,
-          service,
-          serviceParticipant,
-        };
-      })
-    );
+            },
+          },
+        },
+        serviceParticipant: {
+          include: {
+            patient: {
+              include: {
+                user: {
+                  select: {
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
     console.log(
       `[getAllFeedback] Successfully processed ${feedbackWithRelations.length} feedback records`
@@ -94,7 +57,6 @@ export const getAllFeedback = async (
     res.status(500).json({ message: "Failed to fetch feedback" });
   }
 };
-
 // Get feedback by ID
 export const getFeedbackById = async (
   req: Request,
@@ -606,13 +568,10 @@ export const createGeneralClinicFeedback = async (
     const feedbackData: any = {
       // We're not setting service_id or participant_id
       rating_score: rating_score ? parseInt(rating_score) : null,
-      comments,
+      comments: comments, // You could add patient ID info here if needed: `${comments} [Patient ID: ${patientId}]`
       is_anonymous: is_anonymous === true,
       submission_date: new Date(),
       target_type: "SERVICE", // Always SERVICE for general clinic feedback
-      // Store patient_id in a comment field to track who submitted it
-      // This isn't ideal but helps with tracking without schema changes
-      patient_source_id: patientId,
     };
 
     // Add clinic-specific boolean fields
