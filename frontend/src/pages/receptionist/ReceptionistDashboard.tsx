@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Add useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
+import { receptionistService } from "@/services/receptionistService";
+import api from "@/services/api";
 import {
   Card,
   CardContent,
@@ -11,6 +13,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Calendar,
   UserRound,
   ScrollText,
@@ -19,44 +29,82 @@ import {
   Eye,
   FileText,
 } from "lucide-react";
+import { format } from "date-fns";
 
-// Create a temporary mock service until you have the actual service
-const mockReceptionistService = {
-  getCurrentReceptionist: async () => {
-    return {
-      data: {
-        employeeId: 1,
-        jobTitle: "Front Desk Receptionist",
-      },
+// Interface for appointment data
+interface Appointment {
+  service_id: number;
+  start_time: string;
+  end_time: string;
+  status: string;
+  patient: {
+    user: {
+      first_name: string;
+      last_name: string;
     };
-  },
-  getServiceRequests: async (status: string) => {
-    return {
-      data: status === "pending" ? [1, 2, 3] : [], // mock 3 pending requests
+  };
+  doctor: {
+    employee: {
+      user: {
+        first_name: string;
+        last_name: string;
+      };
     };
-  },
-};
+  };
+}
 
 export default function ReceptionistDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate(); // Add this
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [receptionistInfo, setReceptionistInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>(
+    []
+  );
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
-        // Use the mock service for now
-        const receptionistResponse =
-          await mockReceptionistService.getCurrentReceptionist();
-        setReceptionistInfo(receptionistResponse.data);
+        setError(null);
 
-        const serviceRequestsResponse =
-          await mockReceptionistService.getServiceRequests("pending");
-        setPendingRequests(serviceRequestsResponse.data.length);
+        // Get current receptionist info
+        try {
+          const receptionistResponse =
+            await receptionistService.getCurrentReceptionist();
+          setReceptionistInfo(receptionistResponse);
+        } catch (err) {
+          console.error("Error loading receptionist info:", err);
+          // Don't block the whole dashboard if this fails
+        }
+
+        // Get pending service requests count
+        try {
+          const serviceRequestsResponse =
+            await receptionistService.getServiceRequests("pending");
+          setPendingRequests(serviceRequestsResponse.length || 0);
+        } catch (err) {
+          console.error("Error loading service requests:", err);
+          // Set to 0 if we can't fetch
+          setPendingRequests(0);
+        }
+
+        // Get today's appointments
+        try {
+          const today = format(new Date(), "yyyy-MM-dd");
+          const appointmentsResponse = await api.get(
+            "/services/appointments/by-date",
+            {
+              params: { date: today },
+            }
+          );
+          setTodaysAppointments(appointmentsResponse.data || []);
+        } catch (err) {
+          console.error("Error loading today's appointments:", err);
+          setTodaysAppointments([]);
+        }
       } catch (err) {
         console.error("Error loading receptionist dashboard data:", err);
         setError("Failed to load dashboard data. Please try again.");
@@ -110,14 +158,6 @@ export default function ReceptionistDashboard() {
               <Link to="/receptionist/calendar">
                 <Button className="w-full">View Calendar</Button>
               </Link>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate("/receptionist/appointments/new")}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Appointment
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -148,6 +188,83 @@ export default function ReceptionistDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Today's Schedule Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Today's Schedule
+            </CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">
+                Loading schedule...
+              </p>
+            ) : (
+              <div className="text-2xl font-bold">
+                {todaysAppointments.length} Appointments
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mb-3">
+              Quick view of today's appointments
+            </p>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  className="w-full"
+                  disabled={loading || todaysAppointments.length === 0}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Today's Schedule
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>
+                    Today's Schedule - {format(new Date(), "MMMM d, yyyy")}
+                  </DialogTitle>
+                  <DialogDescription>
+                    View all appointments scheduled for today with patient and
+                    doctor details.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto pr-4">
+                  <ul className="space-y-4">
+                    {todaysAppointments.length > 0 ? (
+                      todaysAppointments.map((appt) => (
+                        <li
+                          key={appt.service_id}
+                          className="p-3 bg-muted/50 rounded-lg"
+                        >
+                          <div className="font-semibold text-md">
+                            {format(new Date(appt.start_time), "h:mm a")} -{" "}
+                            {format(new Date(appt.end_time), "h:mm a")}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Patient: {appt.patient.user.first_name}{" "}
+                            {appt.patient.user.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Doctor: {appt.doctor.employee.user.first_name}{" "}
+                            {appt.doctor.employee.user.last_name}
+                          </p>
+                          <p className="text-sm font-medium">
+                            Status: {appt.status}
+                          </p>
+                        </li>
+                      ))
+                    ) : (
+                      <p>No appointments scheduled for today.</p>
+                    )}
+                  </ul>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
       </div>
 
       <h2 className="text-2xl font-bold mb-4">Patient Management</h2>
@@ -168,7 +285,7 @@ export default function ReceptionistDashboard() {
               <Link to="/receptionist/patients">
                 <Button className="w-full">View All Patients</Button>
               </Link>
-              <Link to="/receptionist/patients/new">
+              <Link to="/receptionist/patients/add">
                 <Button className="w-full" variant="outline">
                   Register New Patient
                 </Button>
@@ -191,42 +308,11 @@ export default function ReceptionistDashboard() {
               <Link to="/receptionist/services">
                 <Button className="w-full">View All Services</Button>
               </Link>
-              <Link to="/receptionist/services/new">
+              <Link to="/admin/services/new">
                 <Button className="w-full" variant="outline">
                   Add New Service
                 </Button>
               </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Today's Schedule Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Today's Schedule
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">
-              Quick view of today's appointments
-            </p>
-            <div className="space-y-2">
-              <Button
-                className="w-full"
-                onClick={() => navigate("/receptionist/schedule/today")}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                View Today's Schedule
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate("/receptionist/schedule/week")}
-              >
-                View Week Schedule
-              </Button>
             </div>
           </CardContent>
         </Card>

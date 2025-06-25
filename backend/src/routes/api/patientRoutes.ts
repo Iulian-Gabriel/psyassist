@@ -1,55 +1,53 @@
 import express from "express";
 import * as patientController from "../../controllers/patientController";
 import { authenticateToken } from "../../middleware/auth";
-import { authorizeAdmin } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
-// Create a new patient - accessible to admins
+// Create a new patient - accessible to admins and receptionists
 router.post(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin", "receptionist"]), // CHANGED
   patientController.createPatient
 );
 
-// Get all patients - accessible to admins
+// Get all patients - accessible to admins and receptionists
 router.get(
   "/",
   authenticateToken,
-  authorizeAdmin, // This middleware ensures only admins can access
+  authorize(["admin", "receptionist"]), // CHANGED
   patientController.getAllPatients
 );
 
-// Get patient by ID - accessible to admins
+// Get patient by ID - Admin and Receptionist can view details
 router.get(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin", "receptionist"]), // CHANGED
   patientController.getPatientById
 );
 
-// Deactivate a patient - accessible to admins
+// Deactivate/Reactivate/Update a patient - Admin only for these sensitive actions
 router.patch(
   "/:id/deactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]), // CHANGED
   patientController.deactivatePatient
 );
 
-// Reactivate a patient - accessible to admins
 router.patch(
   "/:id/reactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]), // CHANGED
   patientController.reactivatePatient
 );
 
-// Update a patient - accessible to admins
 router.put(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]), // CHANGED
   patientController.updatePatient
 );
 

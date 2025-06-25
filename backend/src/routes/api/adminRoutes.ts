@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticateToken } from "../../middleware/auth";
-import { authorizeAdmin } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize";
 import * as adminController from "../../controllers/adminController";
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
 router.get(
   "/stats",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]), // CHANGED
   adminController.getDashboardStats
 );
 

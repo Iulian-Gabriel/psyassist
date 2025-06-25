@@ -19,6 +19,7 @@ import feedbackRoutes from "./routes/api/feedbackRoutes";
 import serviceRequestRoutes from "./routes/api/serviceRequestRoutes";
 import serviceTypeRoutes from "./routes/api/serviceTypeRoutes";
 import doctorRoutes from "./routes/api/doctorRoutes";
+import receptionistRoutes from "./routes/api/receptionistRoutes";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/service-requests", serviceRequestRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/service-types", serviceTypeRoutes);
+app.use("/api/receptionists", receptionistRoutes);
 
 // --- Error Handling Middleware ---
 // This should generally be placed AFTER your routes

@@ -1,7 +1,7 @@
 import express from "express";
 import * as serviceController from "../../controllers/serviceController";
 import { authenticateToken } from "../../middleware/auth";
-import { authorizeStaff } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
@@ -16,5 +16,12 @@ router.get("/:id", authenticateToken, serviceController.getServiceById);
 
 // Cancel a service
 router.patch("/:id/cancel", authenticateToken, serviceController.cancelService);
+
+router.get(
+  "/appointments/by-date",
+  authenticateToken,
+  authorize(["admin", "receptionist", "doctor"]),
+  serviceController.getAppointmentsByDate
+);
 
 export default router;

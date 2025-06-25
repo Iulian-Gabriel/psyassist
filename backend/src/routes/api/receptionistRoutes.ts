@@ -1,62 +1,59 @@
 import express from "express";
-import * as receptionistController from "../../controllers/receptionistController";
 import { authenticateToken } from "../../middleware/auth";
-import {
-  authorizeAdmin,
-  authorizeReceptionist,
-} from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize";
+import * as receptionistController from "../../controllers/receptionistController";
 
 const router = express.Router();
+
+// Routes for receptionist to access their own data
+router.get(
+  "/current",
+  authenticateToken,
+  authorize(["receptionist"]),
+  receptionistController.getCurrentReceptionist
+);
 
 // Routes that require admin privilege
 router.get(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   receptionistController.getAllReceptionists
 );
 
 router.post(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   receptionistController.createReceptionist
 );
 
 router.get(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   receptionistController.getReceptionistById
 );
 
 router.patch(
   "/:id/deactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   receptionistController.deactivateReceptionist
 );
 
 router.patch(
   "/:id/reactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   receptionistController.reactivateReceptionist
 );
 
 router.put(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   receptionistController.updateReceptionist
-);
-
-// Routes for receptionist to access their own data
-router.get(
-  "/current",
-  authenticateToken,
-  authorizeReceptionist,
-  receptionistController.getCurrentReceptionist
 );
 
 export default router;

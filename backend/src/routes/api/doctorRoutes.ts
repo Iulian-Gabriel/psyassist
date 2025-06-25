@@ -2,76 +2,73 @@ import express from "express";
 import * as doctorController from "../../controllers/doctorController";
 import * as serviceController from "../../controllers/serviceController";
 import { authenticateToken } from "../../middleware/auth";
-import { authorizeAdmin, authorizeDoctor } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
-// --- FIX: Specific routes MUST be defined before general/parameterized routes ---
-
-// Routes for doctor to access their own data
+// Routes for a doctor to access their own data
 router.get(
   "/current/patients",
   authenticateToken,
-  authorizeDoctor,
+  authorize(["doctor"]),
   doctorController.getDoctorPatients
 );
 
 router.get(
-  "/current/services", // ADD THIS NEW ROUTE
+  "/current/services",
   authenticateToken,
-  authorizeDoctor,
+  authorize(["doctor"]),
   serviceController.getDoctorServices
 );
 
 router.get(
   "/current",
   authenticateToken,
-  authorizeDoctor,
+  authorize(["doctor"]),
   doctorController.getCurrentDoctor
 );
 
-// --- Admin-only routes ---
+// --- Admin-only routes for managing doctors ---
 
 router.get(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   doctorController.getAllDoctors
 );
 
 router.post(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   doctorController.createDoctor
 );
 
-// This general route with a parameter now comes AFTER the specific "/current" routes
 router.get(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   doctorController.getDoctorById
 );
 
 router.patch(
   "/:id/deactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   doctorController.deactivateDoctor
 );
 
 router.patch(
   "/:id/reactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   doctorController.reactivateDoctor
 );
 
 router.put(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   doctorController.updateDoctor
 );
 

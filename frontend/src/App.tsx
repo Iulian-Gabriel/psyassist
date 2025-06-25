@@ -49,6 +49,7 @@ import NoticeForm from "./pages/doctor/NoticeForm";
 import ProvideFeedback from "./pages/patient/ProvideFeedback";
 import FeedbackList from "./pages/doctor/FeedbackList";
 import ServiceRequestsList from "./pages/receptionist/ServiceRequestsList";
+import PatientDetails from "./pages/receptionist/PatientDetails";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
@@ -222,15 +223,30 @@ function App() {
             path="/receptionist/dashboard"
             element={<ReceptionistDashboard />}
           />
-          <Route path="/receptionist/patients" element={<PatientsList />} />
-          <Route path="/receptionist/services" element={<ServicesList />} />
+          <Route
+            path="/receptionist/calendar"
+            element={<AppointmentCalendar />}
+          />
           <Route
             path="/receptionist/service-requests"
             element={<ServiceRequestsList />}
           />
+          <Route
+            path="/receptionist/patients"
+            element={<PatientsList isReceptionistView={true} />}
+          />
+          <Route
+            path="/receptionist/patients/add"
+            element={<AddPatientForm />}
+          />
+          <Route
+            path="/receptionist/patients/:id/view"
+            element={<PatientDetails />}
+          />
+          <Route path="/receptionist/services" element={<ServicesList />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/doctor/patient-notes" element={<PatientNotes />} />{" "}
           {/* New route for patient notes */}
+          <Route path="/doctor/patient-notes" element={<PatientNotes />} />{" "}
           <Route path="/doctor/notices" element={<NoticesList />} />
           <Route path="/doctor/notices/:id" element={<NoticeDetail />} />
           <Route path="/doctor/notices/create" element={<NoticeForm />} />

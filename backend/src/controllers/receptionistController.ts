@@ -335,7 +335,7 @@ export const getCurrentReceptionist = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.userId;
+    const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ message: "Not authenticated" });
       return;
@@ -366,7 +366,11 @@ export const getCurrentReceptionist = async (
     );
 
     if (!isReceptionist) {
-      res.status(403).json({ message: "User is not a receptionist" });
+      // Instead of 403, return a more informative response
+      res.status(200).json({
+        message: "User is not a receptionist",
+        isReceptionist: false,
+      });
       return;
     }
 
@@ -374,6 +378,7 @@ export const getCurrentReceptionist = async (
     res.json({
       employeeId: employee.employee_id,
       jobTitle: employee.job_title,
+      isReceptionist: true,
     });
   } catch (error) {
     console.error("Error getting current receptionist:", error);

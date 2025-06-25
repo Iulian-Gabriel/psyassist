@@ -153,3 +153,58 @@ export const authorizeReceptionist = async (
     res.status(500).json({ message: "Authorization error" });
   }
 };
+
+/**
+ * Middleware Factory to authorize users based on roles.
+ * @param allowedRoles - An array of role names that are allowed to access the route.
+ * @returns An Express middleware function.
+ */
+export const authorize = (allowedRoles: string[]) => {
+  // This returns a standard Express middleware function
+  return async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    // <--- THIS IS THE ONLY CHANGE NEEDED
+    try {
+      // 1. Check if user is authenticated
+      if (!req.user?.userId) {
+        res.status(401).json({ message: "User not authenticated" });
+        return; // Use a plain return to stop execution
+      }
+
+      // 2. Get the user and their roles from the database
+      const userWithRoles = await userService.findByIdWithRoles(
+        req.user.userId
+      );
+
+      // 3. Check if the user and their roles exist
+      if (!userWithRoles || !userWithRoles.roles) {
+        res.status(403).json({ message: "User roles not found" });
+        return;
+      }
+
+      // 4. THE CORE LOGIC: Check if the user has at least one of the allowed roles
+      const isAuthorized = userWithRoles.roles.some((role) =>
+        allowedRoles.includes(role.role_name)
+      );
+
+      // 5. If they are not authorized, block them
+      if (!isAuthorized) {
+        res.status(403).json({
+          message: `Access denied: Requires one of the following roles: ${allowedRoles.join(
+            ", "
+          )}`,
+        });
+        return;
+      }
+
+      // 6. If they are authorized, let them proceed
+      next();
+    } catch (error) {
+      console.error("Authorization error:", error);
+      res.status(500).json({ message: "Server error during authorization" });
+    }
+  };
+};

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../utils/prisma";
 import { AuthenticatedRequest } from "../middleware/auth";
+import { startOfDay, endOfDay, parseISO } from "date-fns";
 
 // Get all services
 export const getAllServices = async (
@@ -295,5 +296,81 @@ export const getDoctorServices = async (
   } catch (error) {
     console.error("Error fetching doctor's services:", error);
     res.status(500).json({ message: "Failed to fetch doctor's services" });
+  }
+};
+
+// CORRECTED function to get appointments by date
+export const getAppointmentsByDate = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { date } = req.query;
+
+    if (!date || typeof date !== "string") {
+      res
+        .status(400)
+        .json({ message: "A valid date query parameter is required." });
+      return;
+    }
+
+    const targetDate = parseISO(date);
+    const startDate = startOfDay(targetDate);
+    const endDate = endOfDay(targetDate);
+
+    // 1. Fetch the data using the CORRECT relational path
+    const appointmentsWithParticipants = await prisma.service.findMany({
+      where: {
+        start_time: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        // Correct path: Service -> serviceParticipants -> patient -> user
+        serviceParticipants: {
+          include: {
+            patient: {
+              include: {
+                user: {
+                  select: { first_name: true, last_name: true },
+                },
+              },
+            },
+          },
+        },
+        doctor: {
+          include: {
+            employee: {
+              include: {
+                user: {
+                  select: { first_name: true, last_name: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        start_time: "asc",
+      },
+    });
+
+    // 2. Reshape the data to match what the frontend expects
+    const appointments = appointmentsWithParticipants.map((appt) => {
+      // Assuming a standard appointment has one participant
+      const patient = appt.serviceParticipants[0]?.patient || null;
+
+      // Remove the complex serviceParticipants array from the final object
+      const { serviceParticipants, ...restOfAppt } = appt;
+
+      // Return a clean appointment object with a top-level 'patient' property
+      return { ...restOfAppt, patient };
+    });
+
+    res.json(appointments);
+  } catch (error) {
+    console.error("Error fetching appointments by date:", error);
+    res.status(500).json({ message: "Failed to fetch appointments" });
   }
 };

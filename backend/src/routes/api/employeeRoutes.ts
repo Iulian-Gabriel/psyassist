@@ -1,62 +1,66 @@
 import express from "express";
 import * as employeesController from "../../controllers/employeeController";
 import { authenticateToken } from "../../middleware/auth";
-import { authorizeAdmin } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize"; // Use the new factory
 
 const router = express.Router();
 
-// Routes that require admin privilege
+// --- Admin-only routes for managing employees ---
 router.get(
   "/",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin", "receptionist"]),
   employeesController.getAllEmployees
 );
+
 router.post(
   "/admin",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   employeesController.createAdmin
 );
+
 router.post(
   "/receptionist",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   employeesController.createReceptionist
 );
 
+// Route for an employee to get their own data
 router.get(
   "/current",
   authenticateToken,
+  authorize(["admin", "doctor", "receptionist"]),
   employeesController.getCurrentEmployee
 );
 
 router.get(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   employeesController.getEmployeeById
 );
+
 router.patch(
   "/:id/deactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   employeesController.deactivateEmployee
 );
-// Add this to your employee routes
+
 router.put(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   employeesController.updateEmployee
 );
-// Add reactivate route
+
 router.patch(
   "/:id/reactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   employeesController.reactivateEmployee
 );
-// Add this to your employeeRoutes.ts
 
 export default router;

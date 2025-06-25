@@ -169,8 +169,8 @@ export default function DoctorDashboard() {
           </CardContent>
         </Card>
       </div>
-      {/* Patient Feedback Card - Not Implemented */}
-      <NotImplementedCard>
+      {/* Patient Feedback Card - Move this inside the grid */}
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">
             Patient Feedback
@@ -192,7 +192,7 @@ export default function DoctorDashboard() {
             </Link>
           </div>
         </CardContent>
-      </NotImplementedCard>
+      </Card>
     </div>
   );
 }

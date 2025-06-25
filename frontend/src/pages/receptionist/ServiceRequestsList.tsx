@@ -179,8 +179,8 @@ export default function ServiceRequestsList() {
   };
 
   const handleScheduleAppointment = (requestId: number) => {
-    // This will navigate to the appointment scheduling page with the request ID
-    navigate(`/receptionist/appointments/schedule?requestId=${requestId}`);
+    // Navigate to the appointment calendar with a query parameter
+    navigate(`/receptionist/calendar?requestId=${requestId}`);
   };
 
   const columns: ColumnDef<ServiceRequest>[] = [
