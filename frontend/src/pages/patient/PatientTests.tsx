@@ -69,6 +69,10 @@ export default function PatientTests() {
     fetchPatientTests();
   }, [user]);
 
+  const handleTakeTest = (testId: number) => {
+    navigate(`/patient/tests/take/${testId}`);
+  };
+
   const handleViewTest = (testId: number) => {
     // Navigate to the test results page for patients
     navigate(`/patient/tests/results/${testId}`);
@@ -144,7 +148,7 @@ export default function PatientTests() {
                             variant="outline"
                             size="sm"
                             onClick={() =>
-                              handleViewTest(test.test_instance_id)
+                              handleTakeTest(test.test_instance_id)
                             }
                           >
                             <Eye className="h-4 w-4 mr-1" />

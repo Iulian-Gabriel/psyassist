@@ -61,6 +61,7 @@ import InitialAssessmentForm from "./pages/patient/InitialAssessmentForm";
 import InitialAssessmentResults from "./pages/patient/InitialAssessmentResults";
 import PatientNoticesList from "./pages/patient/PatientNoticesList";
 import PatientServiceHistory from "./pages/patient/PatientServiceHistory"; // Import the new component
+import TakeTest from "./pages/patient/TakeTest";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -222,6 +223,14 @@ function App() {
                 <PatientServiceHistory /> {/* Add this route */}
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/patient/tests/take/:testInstanceId"
+            element={<TakeTest />}
+          />
+          <Route
+            path="/patient/tests/results/:testInstanceId"
+            element={<PatientTestResults />}
           />
           {/* Doctor routes */}
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />

@@ -321,3 +321,66 @@ export const getAllTests = async (
     res.status(500).json({ message: "Failed to fetch tests" });
   }
 };
+
+export const submitTest = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const testInstanceId = parseInt(req.params.id);
+    const user = req.user;
+    const { patientResponse } = req.body;
+
+    if (isNaN(testInstanceId)) {
+      res.status(400).json({ message: "Invalid test instance ID" });
+      return;
+    }
+
+    if (!user?.userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Find the test instance to ensure it exists and belongs to the patient
+    const testInstance = await prisma.testInstance.findUnique({
+      where: { test_instance_id: testInstanceId },
+      include: {
+        patient: {
+          select: {
+            user_id: true,
+          },
+        },
+      },
+    });
+
+    if (!testInstance) {
+      res.status(404).json({ message: "Test instance not found" });
+      return;
+    }
+
+    // Security check: ensure the test belongs to the logged-in patient
+    if (testInstance.patient?.user_id !== user.userId) {
+      res
+        .status(403)
+        .json({ message: "You are not authorized to submit this test." });
+      return;
+    }
+
+    // Update the test instance with the responses and stop date
+    const updatedTest = await prisma.testInstance.update({
+      where: { test_instance_id: testInstanceId },
+      data: {
+        patientResponse: patientResponse,
+        testStopDate: new Date(),
+      },
+    });
+
+    res.status(200).json({
+      message: "Test submitted successfully",
+      test: updatedTest,
+    });
+  } catch (error) {
+    console.error("Error submitting test:", error);
+    res.status(500).json({ message: "Failed to submit test" });
+  }
+};

@@ -6,6 +6,13 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+router.put(
+  "/:id/submit",
+  authenticateToken,
+  authorize(["patient"]),
+  testsController.submitTest
+);
+
 // Get a patient's tests (for patient portal)
 router.get(
   "/patient/my-tests",

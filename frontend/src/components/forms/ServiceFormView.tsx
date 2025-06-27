@@ -141,10 +141,7 @@ export default function ServiceFormView() {
 
         {question.type === "SCALE" && (
           <div className="mt-4">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm">{question.minValue || 1}</span>
-              <span className="text-sm">{question.maxValue || 5}</span>
-            </div>
+            <div className="flex justify-between mb-2"></div>
             <div className="flex justify-between space-x-2">
               {Array.from(
                 {
