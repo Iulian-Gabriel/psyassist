@@ -660,11 +660,11 @@ async function main() {
       }
     );
 
-    const serviceStatus = faker.helpers.arrayElement([
-      "Scheduled",
-      "Completed",
-      "Cancelled",
-    ]);
+    const serviceStatus =
+      i < 15
+        ? "Completed"
+        : faker.helpers.arrayElement(["Scheduled", "Cancelled"]);
+
     const startTime = faker.date.between({
       from: new Date("2024-06-01"),
       to: new Date(new Date().setMonth(new Date().getMonth() + 2)),
