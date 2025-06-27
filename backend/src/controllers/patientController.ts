@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as userService from "../services/userService";
 import prisma from "../utils/prisma";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 // Create a new patient
 export const createPatient = async (
@@ -390,5 +391,92 @@ export const updatePatient = async (
     }
 
     res.status(500).json({ message: "Failed to update patient" });
+  }
+};
+
+// Get patient's appointment history
+export const getPatientAppointmentsHistory = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Find the patient record associated with this user ID
+    const patient = await prisma.patient.findUnique({
+      where: { user_id: userId },
+      select: { patient_id: true },
+    });
+
+    if (!patient) {
+      res.status(404).json({ message: "Patient profile not found" });
+      return;
+    }
+
+    // Get all appointments for this patient
+    const appointments = await prisma.service.findMany({
+      where: {
+        serviceParticipants: {
+          some: {
+            patient_id: patient.patient_id,
+          },
+        },
+      },
+      include: {
+        doctor: {
+          include: {
+            employee: {
+              include: {
+                user: {
+                  select: {
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        serviceParticipants: {
+          where: {
+            patient_id: patient.patient_id,
+          },
+          select: {
+            attendance_status: true,
+          },
+        },
+      },
+      orderBy: {
+        start_time: "desc",
+      },
+    });
+
+    // Format the response to include attendance status
+    const formattedAppointments = appointments.map((appointment) => ({
+      service_id: appointment.service_id,
+      service_type: appointment.service_type,
+      start_time: appointment.start_time,
+      end_time: appointment.end_time,
+      status: appointment.status,
+      cancel_reason: appointment.cancel_reason,
+      doctor: {
+        name: `Dr. ${appointment.doctor.employee.user.first_name} ${appointment.doctor.employee.user.last_name}`,
+        specialization: appointment.doctor.specialization,
+      },
+      attendance_status:
+        appointment.serviceParticipants.find(
+          (p) => p.attendance_status !== undefined
+        )?.attendance_status || "Unknown",
+    }));
+
+    res.json(formattedAppointments);
+  } catch (error) {
+    console.error("Error fetching patient appointments:", error);
+    res.status(500).json({ message: "Failed to fetch appointment history" });
   }
 };

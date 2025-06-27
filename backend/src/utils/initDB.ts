@@ -126,6 +126,26 @@ async function initializeDatabase() {
           },
         });
       }
+
+      // --- NEW: Assign permissions to Patient role ---
+      if (
+        patientRole &&
+        (perm.name === "user:read" || perm.name === "service:read")
+      ) {
+        await prisma.rolePermissions.upsert({
+          where: {
+            role_id_permission_id: {
+              role_id: patientRole.role_id,
+              permission_id: permission.permission_id,
+            },
+          },
+          update: {},
+          create: {
+            role_id: patientRole.role_id,
+            permission_id: permission.permission_id,
+          },
+        });
+      }
     }
 
     console.log("Database initialized successfully (with receptionist role)!");

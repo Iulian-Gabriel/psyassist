@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
 import prisma from "../utils/prisma";
 import { z } from "zod";
-// import { AuthenticatedRequest } from "../types/auth";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 // Validation schema for creating service requests
 const createServiceRequestSchema = z.object({
-  patient_id: z.number().int().positive(),
   service_type_id: z.number().int().positive(),
   preferred_doctor_id: z.number().int().positive().optional(),
   preferred_date_1: z.string().refine((date) => !isNaN(Date.parse(date))),
@@ -136,14 +135,29 @@ export const getServiceRequestById = async (
 
 // Create a new service request
 export const createServiceRequest = async (
-  req: Request,
+  req: AuthenticatedRequest, // Change this type
   res: Response
 ): Promise<void> => {
   try {
     const validatedData = createServiceRequestSchema.parse(req.body);
 
+    // Get patient ID from authenticated user
+    if (!req.user?.userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Find the patient record for this user
+    const patient = await prisma.patient.findUnique({
+      where: { user_id: req.user.userId },
+    });
+
+    if (!patient) {
+      res.status(404).json({ message: "Patient profile not found" });
+      return;
+    }
+
     const {
-      patient_id,
       service_type_id,
       preferred_doctor_id,
       preferred_date_1,
@@ -155,11 +169,11 @@ export const createServiceRequest = async (
       additional_notes,
     } = validatedData;
 
-    // Create new service request
+    // Create new service request using the patient ID from the database
     const serviceRequest = await prisma.serviceRequest.create({
       data: {
         patient: {
-          connect: { patient_id: patient_id },
+          connect: { patient_id: patient.patient_id }, // Use the found patient ID
         },
         service_type: {
           connect: { service_type_id: service_type_id },

@@ -14,6 +14,7 @@ import serviceRequestRoutes from "./serviceRequestRoutes";
 import serviceTypeRoutes from "./serviceTypeRoutes";
 import doctorRoutes from "./doctorRoutes";
 import receptionistRoutes from "./receptionistRoutes";
+import initialFormRoutes from "./initialFormRoutes";
 
 const router = express.Router();
 
@@ -33,5 +34,6 @@ router.use("/service-requests", serviceRequestRoutes);
 router.use("/service-types", serviceTypeRoutes);
 router.use("/doctor", doctorRoutes);
 router.use("/receptionists", receptionistRoutes);
+router.use("/initial-form", initialFormRoutes);
 
 export default router;

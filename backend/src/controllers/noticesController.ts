@@ -1,16 +1,28 @@
 import { Request, Response } from "express";
 import prisma from "../utils/prisma";
-// import { AuthenticatedRequest } from "../types/auth"; // Add this to your types if not already defined
+import { AuthenticatedRequest } from "../middleware/auth";
 
-// Get all notices
+// Get all notices (for Admin/Receptionist)
 export const getAllNotices = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
     const notices = await prisma.notices.findMany({
       include: {
-        service: true,
+        service: {
+          include: {
+            doctor: {
+              include: {
+                employee: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         serviceParticipant: {
           include: {
             patient: {
@@ -33,9 +45,167 @@ export const getAllNotices = async (
   }
 };
 
+export const getLoggedInPatientNotices = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId; // Get the user ID from the authenticated token
+
+    if (!userId) {
+      res
+        .status(401)
+        .json({ message: "Unauthorized: User ID not found in token." });
+      return;
+    }
+
+    // Find the patient profile linked to this user ID
+    const patient = await prisma.patient.findUnique({
+      where: { user_id: userId },
+      select: { patient_id: true }, // Only need the patient_id for the query
+    });
+
+    if (!patient) {
+      res
+        .status(404)
+        .json({ message: "Patient profile not found for this user." });
+      return;
+    }
+
+    // Now, fetch all notices associated with this patient_id
+    const notices = await prisma.notices.findMany({
+      where: {
+        // Correctly link through serviceParticipant to the patient_id
+        serviceParticipant: {
+          patient_id: patient.patient_id,
+        },
+      },
+      include: {
+        service: {
+          include: {
+            doctor: {
+              include: {
+                employee: {
+                  include: {
+                    user: {
+                      select: {
+                        first_name: true,
+                        last_name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        // It's good to include serviceParticipant and patient info
+        // even if you already know the patient is the logged-in user,
+        // for consistency in data structure.
+        serviceParticipant: {
+          include: {
+            patient: {
+              include: {
+                user: {
+                  select: {
+                    first_name: true,
+                    last_name: true,
+                    date_of_birth: true,
+                    gender: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        issue_date: "desc",
+      },
+    });
+
+    res.json(notices);
+  } catch (error) {
+    console.error("Error fetching logged-in patient notices:", error);
+    res.status(500).json({ message: "Failed to fetch your notices" });
+  }
+};
+
+// Get notices for the logged-in doctor
+export const getDoctorNotices = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!employee) {
+      res.status(404).json({ message: "Employee not found for this user" });
+      return;
+    }
+
+    const doctor = await prisma.doctor.findUnique({
+      where: { employee_id: employee.employee_id },
+    });
+
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor profile not found" });
+      return;
+    }
+
+    const notices = await prisma.notices.findMany({
+      where: {
+        service: {
+          employee_id: doctor.doctor_id, // This should match the foreign key in the service table
+        },
+      },
+      include: {
+        service: {
+          include: {
+            doctor: {
+              include: {
+                employee: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        serviceParticipant: {
+          include: {
+            patient: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        issue_date: "desc",
+      },
+    });
+
+    res.json(notices);
+  } catch (error) {
+    console.error("Error fetching doctor notices:", error);
+    res.status(500).json({ message: "Failed to fetch doctor notices" });
+  }
+};
+
 // Get notice by ID
 export const getNoticeById = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -75,7 +245,7 @@ export const getNoticeById = async (
 
 // Get notices for a specific patient
 export const getPatientNotices = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -129,7 +299,7 @@ export const getPatientNotices = async (
 
 // Create a new notice
 export const createNotice = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -145,7 +315,6 @@ export const createNotice = async (
       attachment_path,
     } = req.body;
 
-    // Validate required fields
     if (!service_id || !participant_id) {
       res
         .status(400)
@@ -153,7 +322,6 @@ export const createNotice = async (
       return;
     }
 
-    // Create the notice
     const notice = await prisma.notices.create({
       data: {
         service_id: parseInt(service_id),
@@ -189,7 +357,7 @@ export const createNotice = async (
 
 // Update a notice
 export const updateNotice = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -209,7 +377,6 @@ export const updateNotice = async (
       attachment_path,
     } = req.body;
 
-    // Check if notice exists
     const existingNotice = await prisma.notices.findUnique({
       where: { notice_id: noticeId },
     });
@@ -219,7 +386,6 @@ export const updateNotice = async (
       return;
     }
 
-    // Update the notice
     const updatedNotice = await prisma.notices.update({
       where: { notice_id: noticeId },
       data: {
@@ -254,7 +420,7 @@ export const updateNotice = async (
 
 // Delete a notice
 export const deleteNotice = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -264,7 +430,6 @@ export const deleteNotice = async (
       return;
     }
 
-    // Check if notice exists
     const existingNotice = await prisma.notices.findUnique({
       where: { notice_id: noticeId },
     });
@@ -274,7 +439,6 @@ export const deleteNotice = async (
       return;
     }
 
-    // Delete the notice
     await prisma.notices.delete({
       where: { notice_id: noticeId },
     });
@@ -288,13 +452,13 @@ export const deleteNotice = async (
 
 // Get services for creating notices
 export const getServicesForNotices = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
     const services = await prisma.service.findMany({
       where: {
-        status: "Completed", // Only show completed services
+        status: "Completed",
       },
       include: {
         doctor: {
@@ -330,7 +494,7 @@ export const getServicesForNotices = async (
 
 // Get patients for creating notices
 export const getPatientsForNotices = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
@@ -363,20 +527,17 @@ export const getPatientsForNotices = async (
 
 // Generate unique notice number
 export const generateNoticeNumber = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed (0 for Jan, 11 for Dec)
+    const month = now.getMonth();
 
-    // First day of the current month
     const startDate = new Date(year, month, 1);
-    // First day of the next month
     const endDate = new Date(year, month + 1, 1);
 
-    // Count notices from the current month
     const noticesCount = await prisma.notices.count({
       where: {
         issue_date: {
@@ -386,12 +547,9 @@ export const generateNoticeNumber = async (
       },
     });
 
-    // Format the month part of the number (e.g., '06' for June)
     const monthString = String(month + 1).padStart(2, "0");
-    // Generate a sequence number padded with zeros
     const sequence = String(noticesCount + 1).padStart(3, "0");
 
-    // Format: NOTICE-YYYYMM-XXX
     const noticeNumber = `NOTICE-${year}${monthString}-${sequence}`;
 
     res.json({ noticeNumber });

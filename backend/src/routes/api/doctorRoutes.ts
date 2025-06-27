@@ -28,6 +28,12 @@ router.get(
   doctorController.getCurrentDoctor
 );
 
+router.get(
+  "/selection", // A more specific path, like /api/doctors/selection
+  authenticateToken, // Ensure a user is logged in
+  authorize(["patient", "admin", "receptionist"]), // Allow roles that need to create service requests
+  doctorController.getSelectableDoctors
+);
 // --- Admin-only routes for managing doctors ---
 
 router.get(

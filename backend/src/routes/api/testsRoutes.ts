@@ -2,14 +2,23 @@ import express from "express";
 import * as testsController from "../../controllers/testsController";
 import { authenticateToken } from "../../middleware/auth";
 import { authorizeStaff, authorizeAdmin } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
+
+// Get a patient's tests (for patient portal)
+router.get(
+  "/patient/my-tests",
+  authenticateToken,
+  authorize(["patient"]),
+  testsController.getPatientTests
+);
 
 // Get all tests for a doctor's patients
 router.get(
   "/doctor/:id",
   authenticateToken,
-  authorizeStaff,
+  authorize(["doctor"]),
   testsController.getDoctorPatientTests
 );
 
@@ -17,19 +26,17 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorizeStaff,
+  authorize(["doctor", "patient"]),
   testsController.getTestInstance
 );
 
 // Assign a test to a patient
 router.post(
   "/assign",
-  authenticateToken, // Only authentication, no role check for now
+  authenticateToken,
+  authorize(["doctor"]),
   testsController.assignTestToPatient
 );
-
-// Get a patient's tests (for patient portal)
-router.get("/patient/:id", authenticateToken, testsController.getPatientTests);
 
 // Update this route to remove role restrictions
 router.get(

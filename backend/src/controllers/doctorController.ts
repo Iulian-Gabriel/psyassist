@@ -478,3 +478,48 @@ export const getDoctorPatients = async (
     });
   }
 };
+
+export const getSelectableDoctors = async (
+  req: Request, // Or AuthenticatedRequest if you want to ensure a user is logged in
+  res: Response
+): Promise<void> => {
+  try {
+    const doctors = await prisma.doctor.findMany({
+      where: {
+        // You might add conditions here, e.g., only active doctors,
+        // or doctors accepting new patients, if your schema supports it.
+        employee: {
+          user: {
+            is_active: true, // Only show active doctors
+          },
+        },
+      },
+      select: {
+        // Select only the necessary fields for the dropdown
+        doctor_id: true,
+        specialization: true,
+        employee: {
+          select: {
+            user: {
+              select: {
+                first_name: true,
+                last_name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        employee: {
+          user: {
+            last_name: "asc",
+          },
+        },
+      },
+    });
+    res.json(doctors);
+  } catch (error) {
+    console.error("Error fetching selectable doctors:", error);
+    res.status(500).json({ message: "Failed to fetch doctors for selection" });
+  }
+};

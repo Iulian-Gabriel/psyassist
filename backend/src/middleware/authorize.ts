@@ -166,21 +166,42 @@ export const authorize = (allowedRoles: string[]) => {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    // <--- THIS IS THE ONLY CHANGE NEEDED
+    // <--- THIS IS YOUR FUNCTION WITH DEBUG LOGS ADDED
     try {
+      // --- Log #1: Show that the middleware is running and what roles it's checking for.
+      console.log("\n[DEBUG] Authorize middleware triggered.");
+      console.log(
+        `[DEBUG] Route requires one of these roles: [${allowedRoles.join(
+          ", "
+        )}]`
+      );
+
       // 1. Check if user is authenticated
       if (!req.user?.userId) {
+        console.log("[DEBUG] ❌ FAILURE: No user ID in token.");
         res.status(401).json({ message: "User not authenticated" });
         return; // Use a plain return to stop execution
       }
+
+      console.log(`[DEBUG] Authenticated User ID is: ${req.user.userId}`);
 
       // 2. Get the user and their roles from the database
       const userWithRoles = await userService.findByIdWithRoles(
         req.user.userId
       );
 
+      // --- Log #2: This is the MOST IMPORTANT log. It shows us exactly what the database returned.
+      console.log(
+        "[DEBUG] Raw user data from database:",
+        JSON.stringify(userWithRoles, null, 2)
+      );
+
       // 3. Check if the user and their roles exist
+      // This is the part that is likely failing because of the typo.
       if (!userWithRoles || !userWithRoles.roles) {
+        console.log(
+          "[DEBUG] ❌ FAILURE: The 'userWithRoles.roles' property is missing or undefined!"
+        );
         res.status(403).json({ message: "User roles not found" });
         return;
       }
@@ -190,8 +211,11 @@ export const authorize = (allowedRoles: string[]) => {
         allowedRoles.includes(role.role_name)
       );
 
+      console.log(`[DEBUG] Is user authorized? -> ${isAuthorized}`);
+
       // 5. If they are not authorized, block them
       if (!isAuthorized) {
+        console.log("[DEBUG] ❌ FAILURE: User is not authorized. Sending 403.");
         res.status(403).json({
           message: `Access denied: Requires one of the following roles: ${allowedRoles.join(
             ", "
@@ -201,9 +225,10 @@ export const authorize = (allowedRoles: string[]) => {
       }
 
       // 6. If they are authorized, let them proceed
+      console.log("[DEBUG] ✅ SUCCESS: User is authorized. Calling next().");
       next();
     } catch (error) {
-      console.error("Authorization error:", error);
+      console.error("[DEBUG] 🚨 CATCH BLOCK ERROR:", error);
       res.status(500).json({ message: "Server error during authorization" });
     }
   };

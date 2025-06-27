@@ -77,7 +77,7 @@ export default function RequestService() {
     const fetchDoctors = async () => {
       try {
         // Reuse your existing doctors endpoint
-        const response = await api.get("/doctors");
+        const response = await api.get("/doctor/selection");
         setDoctors(response.data);
       } catch (err) {
         console.error("Failed to fetch doctors:", err);
@@ -116,7 +116,11 @@ export default function RequestService() {
     e.preventDefault();
 
     // Basic validation
-    if (!formData.service_type_id || !formData.preferred_date_1) {
+    if (
+      !formData.service_type_id ||
+      !formData.preferred_date_1 ||
+      !formData.reason
+    ) {
       setError("Please fill in all required fields");
       return;
     }
@@ -125,10 +129,21 @@ export default function RequestService() {
       setLoading(true);
       setError(null);
 
-      // Add the patient ID to the form data
+      // Prepare the form data with proper type conversions
       const submitData = {
-        ...formData,
-        patient_id: user?.id, // Assuming the user object has an 'id' property that corresponds to the patient ID
+        service_type_id: parseInt(formData.service_type_id),
+        preferred_doctor_id:
+          formData.preferred_doctor_id &&
+          formData.preferred_doctor_id !== "none"
+            ? parseInt(formData.preferred_doctor_id)
+            : undefined,
+        preferred_date_1: formData.preferred_date_1,
+        preferred_date_2: formData.preferred_date_2 || undefined,
+        preferred_date_3: formData.preferred_date_3 || undefined,
+        preferred_time: formData.preferred_time,
+        reason: formData.reason,
+        urgent: formData.urgent,
+        additional_notes: formData.additional_notes || undefined,
       };
 
       // Submit the service request
@@ -155,9 +170,14 @@ export default function RequestService() {
       setTimeout(() => {
         navigate("/patient/dashboard");
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to submit service request:", err);
-      setError("Failed to submit your request. Please try again.");
+
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Failed to submit your request. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -235,7 +255,7 @@ export default function RequestService() {
                     <SelectValue placeholder="Select a doctor (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No preference</SelectItem>
+                    <SelectItem value="none">No preference</SelectItem>
                     {doctors.map((doctor) => (
                       <SelectItem
                         key={doctor.doctor_id}

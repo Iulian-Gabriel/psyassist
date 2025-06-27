@@ -5,11 +5,19 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+// Get patient's own appointments history
+router.get(
+  "/appointments/history",
+  authenticateToken,
+  authorize(["patient"]),
+  patientController.getPatientAppointmentsHistory
+);
+
 // Create a new patient - accessible to admins and receptionists
 router.post(
   "/",
   authenticateToken,
-  authorize(["admin", "receptionist"]), // CHANGED
+  authorize(["admin", "receptionist"]),
   patientController.createPatient
 );
 
@@ -17,7 +25,7 @@ router.post(
 router.get(
   "/",
   authenticateToken,
-  authorize(["admin", "receptionist"]), // CHANGED
+  authorize(["admin", "receptionist"]),
   patientController.getAllPatients
 );
 
@@ -25,7 +33,7 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorize(["admin", "receptionist"]), // CHANGED
+  authorize(["admin", "receptionist"]),
   patientController.getPatientById
 );
 
@@ -33,21 +41,21 @@ router.get(
 router.patch(
   "/:id/deactivate",
   authenticateToken,
-  authorize(["admin"]), // CHANGED
+  authorize(["admin"]),
   patientController.deactivatePatient
 );
 
 router.patch(
   "/:id/reactivate",
   authenticateToken,
-  authorize(["admin"]), // CHANGED
+  authorize(["admin"]),
   patientController.reactivatePatient
 );
 
 router.put(
   "/:id",
   authenticateToken,
-  authorize(["admin"]), // CHANGED
+  authorize(["admin"]),
   patientController.updatePatient
 );
 

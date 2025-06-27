@@ -93,17 +93,24 @@ export const getTestInstance = async (
 ): Promise<void> => {
   try {
     const testInstanceId = parseInt(req.params.id);
+    const user = req.user; // Get user info from the authenticated token
 
     if (isNaN(testInstanceId)) {
       res.status(400).json({ message: "Invalid test instance ID" });
       return;
     }
 
+    // A small check to ensure the user object from the token is valid
+    if (!user?.userId || !user.role) {
+      res.status(401).json({ message: "User not authenticated properly" });
+      return;
+    }
+
     const testInstance = await prisma.testInstance.findUnique({
-      where: {
-        test_instance_id: testInstanceId,
-      },
+      where: { test_instance_id: testInstanceId },
       include: {
+        // --- START OF CHANGE ---
+        // Include patient and their associated user details
         patient: {
           include: {
             user: {
@@ -115,6 +122,7 @@ export const getTestInstance = async (
             },
           },
         },
+        // --- END OF CHANGE ---
         testTemplateVersion: {
           include: {
             testTemplate: true,
@@ -127,6 +135,30 @@ export const getTestInstance = async (
       res.status(404).json({ message: "Test instance not found" });
       return;
     }
+
+    // --- NEW SECURITY CHECK ---
+    // If the logged-in user has the 'patient' role, we MUST verify they own this test.
+    if (user.role === "patient") {
+      // Find the patient profile linked to the logged-in user
+      const patientProfile = await prisma.patient.findUnique({
+        where: { user_id: user.userId },
+        select: { patient_id: true },
+      });
+
+      // If the patient profile doesn't exist, or if the test's patient_id
+      // does not match the logged-in patient's ID, deny access.
+      if (
+        !patientProfile ||
+        testInstance.patient_id !== patientProfile.patient_id
+      ) {
+        res
+          .status(403)
+          .json({ message: "You are not authorized to view this test." });
+        return;
+      }
+    }
+    // If the user is a 'doctor' or 'admin', they can proceed without this check.
+    // --- END OF SECURITY CHECK ---
 
     res.json(testInstance);
   } catch (error) {
@@ -199,31 +231,30 @@ export const getPatientTests = async (
   res: Response
 ): Promise<void> => {
   try {
-    const patientId = parseInt(req.params.id);
-    const userId = req.user?.userId;
+    const userId = req.user?.userId; // Get the ID from the token
 
-    if (isNaN(patientId)) {
-      res.status(400).json({ message: "Invalid patient ID" });
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
       return;
     }
 
-    // Security check: For now we'll skip the staff check
-    // and implement a simpler check just comparing user IDs
+    // Find the patient record associated with this user ID
     const patient = await prisma.patient.findUnique({
-      where: { patient_id: patientId },
-      select: { user_id: true },
+      where: { user_id: userId },
     });
 
-    // If the patient doesn't exist or user_id doesn't match the request user
-    if (!patient || patient.user_id !== req.user?.userId) {
-      // Convert userId to number for comparison (fixes the third error too)
-      res.status(403).json({ message: "Not authorized to view these tests" });
+    // If no patient record is linked to this user account
+    if (!patient) {
+      res
+        .status(404)
+        .json({ message: "Patient profile not found for this user." });
       return;
     }
 
+    // Now, fetch tests using the correct patient_id
     const testInstances = await prisma.testInstance.findMany({
       where: {
-        patient_id: patientId,
+        patient_id: patient.patient_id, // Use the correct patient_id from the found record
       },
       include: {
         testTemplateVersion: {

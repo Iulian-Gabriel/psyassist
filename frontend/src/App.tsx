@@ -39,7 +39,7 @@ import AddServiceForm from "./pages/admin/AddServiceForm";
 import AppointmentCalendar from "./pages/receptionist/AppointmentCalendar";
 import PsychologicalForms from "./components/forms/PsychologicalForms";
 import ServiceFormCreator from "./components/forms/ServiceFormCreator";
-import PatientTests from "./pages/doctor/PatientTests";
+import DoctorPatientTests from "./pages/doctor/PatientTests";
 import AssignTest from "./pages/doctor/AssignTest";
 import TestResult from "./pages/doctor/TestResult";
 import PatientNotes from "./pages/doctor/PatientNotes"; // Import the new component
@@ -55,6 +55,12 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import RequestService from "./pages/patient/RequestService";
 import Dashboard from "./pages/Dashboard"; // Import the redirector Dashboard
+import PatientOwnTests from "./pages/patient/PatientTests.tsx";
+import PatientTestResults from "./pages/patient/PatientTestResults";
+import InitialAssessmentForm from "./pages/patient/InitialAssessmentForm";
+import InitialAssessmentResults from "./pages/patient/InitialAssessmentResults";
+import PatientNoticesList from "./pages/patient/PatientNoticesList";
+import PatientServiceHistory from "./pages/patient/PatientServiceHistory"; // Import the new component
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -192,6 +198,31 @@ function App() {
             path="/patient/appointments/request"
             element={<RequestService />}
           />
+          <Route path="/patient/my-tests" element={<PatientOwnTests />} />
+          <Route
+            path="/patient/tests/results/:testInstanceId"
+            element={<PatientTestResults />}
+          />
+          <Route
+            path="/patient/initial-form"
+            element={<InitialAssessmentForm />}
+          />
+          <Route
+            path="/patient/initial-form/view"
+            element={<InitialAssessmentResults />}
+          />
+          <Route
+            path="/patient/documents/notices"
+            element={<PatientNoticesList />}
+          />
+          <Route
+            path="/patient/appointments/history"
+            element={
+              <ProtectedRoute>
+                <PatientServiceHistory /> {/* Add this route */}
+              </ProtectedRoute>
+            }
+          />
           {/* Doctor routes */}
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
           <Route
@@ -215,7 +246,7 @@ function App() {
             path="/psychological-forms/create"
             element={<ServiceFormCreator />}
           />
-          <Route path="/patient-tests" element={<PatientTests />} />
+          <Route path="/patient-tests" element={<DoctorPatientTests />} />
           <Route path="/patient-tests/assign" element={<AssignTest />} />
           <Route path="/patient-tests/:id" element={<TestResult />} />
           {/* Receptionist routes */}

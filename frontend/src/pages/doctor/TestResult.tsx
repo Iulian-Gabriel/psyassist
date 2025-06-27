@@ -125,11 +125,13 @@ export default function TestResult() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {testData.patient.user.first_name}{" "}
-              {testData.patient.user.last_name}
+              {testData.patient?.user?.first_name &&
+              testData.patient?.user?.last_name
+                ? `${testData.patient.user.first_name} ${testData.patient.user.last_name}`
+                : "Patient information not available"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {testData.patient.user.email}
+              {testData.patient?.user?.email || "Email not available"}
             </p>
           </CardContent>
         </Card>

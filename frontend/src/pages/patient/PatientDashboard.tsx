@@ -29,6 +29,7 @@ export default function PatientDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* Psychological Tests Card */}
+        {/* Psychological Tests Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
@@ -41,13 +42,8 @@ export default function PatientDashboard() {
               Complete psychological tests assigned by your doctor
             </p>
             <div className="space-y-2">
-              <Link to="/patient/tests/assigned">
-                <Button className="w-full">Pending Tests</Button>
-              </Link>
-              <Link to="/patient/tests/completed">
-                <Button className="w-full" variant="outline">
-                  Completed Tests
-                </Button>
+              <Link to="/patient/my-tests">
+                <Button className="w-full">View My Tests</Button>
               </Link>
             </div>
           </CardContent>

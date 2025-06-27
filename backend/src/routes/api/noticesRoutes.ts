@@ -1,13 +1,35 @@
+// routes/noticesRoutes.ts
+
 import express from "express";
 import * as noticesController from "../../controllers/noticesController";
 import { authenticateToken } from "../../middleware/auth";
+import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
-// --- Static GET routes first ---
+// Get all notices (for Admin/Receptionist)
+router.get(
+  "/",
+  authenticateToken,
+  authorize(["admin", "receptionist"]),
+  noticesController.getAllNotices
+);
 
-// Get all notices
-router.get("/", authenticateToken, noticesController.getAllNotices);
+// Get notices for the logged-in doctor
+router.get(
+  "/doctor",
+  authenticateToken,
+  authorize(["doctor"]),
+  noticesController.getDoctorNotices
+);
+
+// Get notices for the logged-in patient (NEW ROUTE)
+router.get(
+  "/patient/my-notices", // More explicit route for current user
+  authenticateToken,
+  authorize(["patient"]), // Only patients can access their own notices this way
+  noticesController.getLoggedInPatientNotices // New controller function
+);
 
 // Generate unique notice number
 router.get(
@@ -30,19 +52,16 @@ router.get(
   noticesController.getPatientsForNotices
 );
 
-// --- Dynamic GET routes last ---
-
-// Get notices for a specific patient (more specific dynamic route)
+// Get notices for a specific patient (Doctor/Admin can use this to view ANY patient's notices)
 router.get(
   "/patient/:patientId",
   authenticateToken,
+  authorize(["doctor", "admin", "receptionist"]), // Ensure only authorized roles can view arbitrary patient notices
   noticesController.getPatientNotices
 );
 
-// Get notice by ID (most general dynamic route)
+// Get notice by ID
 router.get("/:id", authenticateToken, noticesController.getNoticeById);
-
-// --- Other Methods (POST, PUT, DELETE) ---
 
 // Create a new notice
 router.post("/", authenticateToken, noticesController.createNotice);

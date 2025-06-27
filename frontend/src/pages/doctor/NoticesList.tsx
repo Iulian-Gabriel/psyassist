@@ -56,7 +56,8 @@ export default function NoticesList() {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get("/notices");
+        // CORRECTED: Fetch notices specifically for the logged-in doctor
+        const response = await api.get("/notices/doctor");
         setNotices(response.data);
       } catch (err) {
         console.error("Failed to fetch notices:", err);
@@ -81,7 +82,6 @@ export default function NoticesList() {
     if (window.confirm("Are you sure you want to delete this notice?")) {
       try {
         await api.delete(`/notices/${noticeId}`);
-        // Update the list after deletion
         setNotices(notices.filter((notice) => notice.notice_id !== noticeId));
       } catch (err) {
         console.error("Failed to delete notice:", err);
@@ -109,9 +109,9 @@ export default function NoticesList() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Patient Medical Notices</CardTitle>
+          <CardTitle>My Medical Notices</CardTitle>
           <CardDescription>
-            List of all medical notices issued to patients
+            List of all medical notices you have issued to patients
           </CardDescription>
         </CardHeader>
         <CardContent>
