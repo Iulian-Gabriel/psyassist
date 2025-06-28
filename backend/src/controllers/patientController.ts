@@ -565,7 +565,6 @@ export const getPatientUpcomingAppointments = async (
       return;
     }
 
-    // Find the patient record associated with this user ID
     const patient = await prisma.patient.findUnique({
       where: { user_id: userId },
       select: { patient_id: true },
@@ -576,20 +575,20 @@ export const getPatientUpcomingAppointments = async (
       return;
     }
 
-    console.log("Patient ID:", patient.patient_id); // Debug log
-
     const now = new Date();
-    console.log("Current time:", now); // Debug log
 
-    // First, let's get ALL scheduled appointments for debugging
-    const allScheduledAppointments = await prisma.service.findMany({
+    // Get upcoming appointments with all necessary data included
+    const upcomingAppointments = await prisma.service.findMany({
       where: {
         serviceParticipants: {
           some: {
             patient_id: patient.patient_id,
           },
         },
-        status: "Scheduled", // Only scheduled appointments
+        status: "Scheduled",
+        start_time: {
+          gte: now,
+        },
       },
       include: {
         serviceParticipants: {
@@ -598,6 +597,21 @@ export const getPatientUpcomingAppointments = async (
           },
           select: {
             attendance_status: true,
+          },
+        },
+        // Correctly include the nested relations
+        doctor: {
+          include: {
+            employee: {
+              include: {
+                user: {
+                  select: {
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -606,139 +620,29 @@ export const getPatientUpcomingAppointments = async (
       },
     });
 
-    console.log(
-      "All scheduled appointments:",
-      allScheduledAppointments.map((apt) => ({
-        service_id: apt.service_id,
-        start_time: apt.start_time,
-        is_future: apt.start_time >= now,
-      }))
-    );
+    // Map the results directly without another database call
+    const formattedAppointments = upcomingAppointments.map((appointment) => {
+      const doctorUser = appointment.doctor?.employee?.user;
+      const doctorDetails = appointment.doctor;
 
-    // Get upcoming appointments (scheduled status and start_time in the future)
-    const upcomingAppointments = await prisma.service.findMany({
-      where: {
-        serviceParticipants: {
-          some: {
-            patient_id: patient.patient_id,
-          },
+      return {
+        service_id: appointment.service_id,
+        service_type: appointment.service_type,
+        start_time: appointment.start_time,
+        end_time: appointment.end_time,
+        status: appointment.status,
+        doctor: {
+          name: doctorUser
+            ? `Dr. ${doctorUser.first_name} ${doctorUser.last_name}`
+            : "Unknown Doctor",
+          specialization: doctorDetails?.specialization || "General",
         },
-        status: "Scheduled", // Only scheduled appointments
-        start_time: {
-          gte: now, // Only future appointments
-        },
-      },
-      include: {
-        serviceParticipants: {
-          where: {
-            patient_id: patient.patient_id,
-          },
-          select: {
-            attendance_status: true,
-          },
-        },
-      },
-      orderBy: {
-        start_time: "asc", // Earliest appointments first
-      },
+        attendance_status:
+          appointment.serviceParticipants.find(
+            (p: any) => p.attendance_status !== undefined
+          )?.attendance_status || "Expected",
+      };
     });
-
-    console.log("Upcoming appointments found:", upcomingAppointments); // Debug log
-
-    // If no upcoming appointments but there are scheduled ones, let's return the next few scheduled ones anyway for testing
-    if (
-      upcomingAppointments.length === 0 &&
-      allScheduledAppointments.length > 0
-    ) {
-      console.log(
-        "No future appointments found, using all scheduled for testing"
-      );
-      // For testing purposes, let's use the scheduled appointments
-      const testAppointments = allScheduledAppointments.slice(0, 5); // Get first 5
-
-      const formattedTestAppointments = await Promise.all(
-        testAppointments.map(async (appointment) => {
-          const employee = await prisma.employee.findUnique({
-            where: { employee_id: appointment.employee_id },
-            include: {
-              user: {
-                select: {
-                  first_name: true,
-                  last_name: true,
-                },
-              },
-              doctor: {
-                select: {
-                  specialization: true,
-                },
-              },
-            },
-          });
-
-          return {
-            service_id: appointment.service_id,
-            service_type: appointment.service_type,
-            start_time: appointment.start_time,
-            end_time: appointment.end_time,
-            status: appointment.status,
-            doctor: {
-              name: employee
-                ? `Dr. ${employee.user.first_name} ${employee.user.last_name}`
-                : "Unknown Doctor",
-              specialization: employee?.doctor?.specialization || "General",
-            },
-            attendance_status:
-              appointment.serviceParticipants.find(
-                (p: any) => p.attendance_status !== undefined
-              )?.attendance_status || "Expected",
-          };
-        })
-      );
-
-      res.json(formattedTestAppointments);
-      return;
-    }
-
-    // Now get employee and doctor details separately for each appointment
-    const formattedAppointments = await Promise.all(
-      upcomingAppointments.map(async (appointment) => {
-        // Get employee details
-        const employee = await prisma.employee.findUnique({
-          where: { employee_id: appointment.employee_id },
-          include: {
-            user: {
-              select: {
-                first_name: true,
-                last_name: true,
-              },
-            },
-            doctor: {
-              select: {
-                specialization: true,
-              },
-            },
-          },
-        });
-
-        return {
-          service_id: appointment.service_id,
-          service_type: appointment.service_type,
-          start_time: appointment.start_time,
-          end_time: appointment.end_time,
-          status: appointment.status,
-          doctor: {
-            name: employee
-              ? `Dr. ${employee.user.first_name} ${employee.user.last_name}`
-              : "Unknown Doctor",
-            specialization: employee?.doctor?.specialization || "General",
-          },
-          attendance_status:
-            appointment.serviceParticipants.find(
-              (p: any) => p.attendance_status !== undefined
-            )?.attendance_status || "Expected",
-        };
-      })
-    );
 
     res.json(formattedAppointments);
   } catch (error) {
