@@ -83,79 +83,155 @@ interface FeedbackListProps {
   isAdmin?: boolean;
 }
 
-export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
-  const navigate = useNavigate();
+export default function FeedbackList({ isAdmin = false }) {
   const { user } = useAuth();
+
+  // Auto-detect admin role if not explicitly set
+  const isActuallyAdmin = isAdmin || user?.roles?.includes("admin");
+
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
-  const [doctorFeedback, setDoctorFeedback] = useState<FeedbackItem[]>([]);
-  const [clinicFeedback, setClinicFeedback] = useState<FeedbackItem[]>([]);
+  const [allFeedback, setAllFeedback] = useState<FeedbackItem[]>([]); // For holding all data
+  const [doctorFeedback, setDoctorFeedback] = useState<FeedbackItem[]>([]); // Specifically for doctor view
+  const [clinicFeedback, setClinicFeedback] = useState<FeedbackItem[]>([]); // For the admin's clinic tab
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFeedback = async () => {
+      // DEBUG: 1. Check if the effect is running and who the user is
+      console.log("=== FEEDBACKLIST DEBUG START ===");
+      console.log(
+        `[FeedbackList] Starting fetch. Is Admin: ${isActuallyAdmin}, User ID: ${user?.id}`
+      );
+      console.log(`[FeedbackList] User object:`, user);
+
       try {
         setLoading(true);
         setError(null);
 
-        let response;
+        if (isActuallyAdmin) {
+          // Admin gets everything from the main endpoint
+          console.log("[FeedbackList] Admin branch - calling /feedback");
+          const response = await api.get("/feedback");
 
-        // Different endpoints for admin and doctor views
-        if (isAdmin) {
-          // Admin sees all feedback
-          response = await api.get("/feedback");
-        } else {
-          // Doctor only sees their own feedback
-          if (!user?.id) {
-            setError("User ID not found");
-            return;
-          }
-          response = await api.get(`/feedback/doctor/${user.id}/all`);
-        }
+          // DEBUG: Log the response
+          console.log(
+            "[FeedbackList] Admin API Response status:",
+            response.status
+          );
+          console.log("[FeedbackList] Admin API Response data:", response.data);
+          console.log(
+            "[FeedbackList] Admin API Response data length:",
+            response.data?.length
+          );
 
-        // If admin gets flat feedback array, if doctor gets categorized object
-        if (isAdmin) {
-          // Admin view - just set all feedback to the array
-          const allFeedback = response.data;
-          setFeedback(allFeedback);
-          // Categorize feedback for the admin view
+          const data = response.data;
+          setAllFeedback(data); // Admins can still filter by type on the frontend
           setDoctorFeedback(
-            allFeedback.filter((item) => item.target_type === "DOCTOR")
+            data.filter((item) => item.target_type === "DOCTOR")
           );
           setClinicFeedback(
-            allFeedback.filter((item) => item.target_type === "SERVICE")
+            data.filter((item) => item.target_type === "SERVICE")
+          );
+
+          console.log("[FeedbackList] Admin - processed data:");
+          console.log("  - All feedback count:", data.length);
+          console.log(
+            "  - Doctor feedback count:",
+            data.filter((item) => item.target_type === "DOCTOR").length
+          );
+          console.log(
+            "  - Clinic feedback count:",
+            data.filter((item) => item.target_type === "SERVICE").length
           );
         } else {
-          // Doctor view - use categorized feedback
-          setFeedback(response.data.all);
-          setDoctorFeedback(response.data.doctorSpecific);
-          setClinicFeedback(response.data.clinicFeedback);
+          // Doctor gets ONLY their specific feedback from the correct endpoint
+          if (!user?.id) {
+            console.error("[FeedbackList] Doctor ID not found, user:", user);
+            setError("Doctor ID not found");
+            return;
+          }
+
+          const endpoint = `/feedback/doctor/${user.id}`;
+          console.log(`[FeedbackList] Doctor branch - calling ${endpoint}`);
+
+          const response = await api.get(endpoint);
+
+          // DEBUG: Log the response
+          console.log(
+            "[FeedbackList] Doctor API Response status:",
+            response.status
+          );
+          console.log(
+            "[FeedbackList] Doctor API Response data:",
+            response.data
+          );
+          console.log(
+            "[FeedbackList] Doctor API Response data length:",
+            response.data?.length
+          );
+
+          const data = response.data; // For doctors, all fetched feedback is "doctor feedback"
+          setAllFeedback(data);
+          setDoctorFeedback(data);
+          // A doctor should not see any separate clinic feedback
+          setClinicFeedback([]);
+
+          console.log("[FeedbackList] Doctor - processed data:");
+          console.log("  - All feedback count:", data.length);
+          console.log("  - Doctor feedback count:", data.length);
+          console.log("  - Clinic feedback count:", 0);
         }
       } catch (err: any) {
-        console.error("Failed to fetch feedback:", err);
-        setError(err.message || "Failed to load feedback");
+        console.error("!!! [FeedbackList] FAILED TO FETCH FEEDBACK !!!");
+        console.error("Error object:", err);
+        console.error("Error message:", err.message);
+        console.error("Error response:", err.response);
+        console.error("Error response data:", err.response?.data);
+        console.error("Error response status:", err.response?.status);
+        console.error("Error response statusText:", err.response?.statusText);
+
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to load feedback"
+        );
       } finally {
         setLoading(false);
+        console.log("=== FEEDBACKLIST DEBUG END ===");
       }
     };
 
-    fetchFeedback();
-  }, [user?.id, isAdmin]);
+    // Check if we should fetch
+    console.log("[FeedbackList] useEffect dependency check:");
+    console.log("  - user?.id:", user?.id);
+    console.log("  - isAdmin:", isAdmin);
+    console.log("  - Should fetch:", !!(user?.id || isAdmin));
+
+    if (user?.id || isActuallyAdmin) {
+      fetchFeedback();
+    } else {
+      console.warn("[FeedbackList] Not fetching - no user ID and not admin");
+      setLoading(false);
+    }
+  }, [user?.id, isActuallyAdmin]);
 
   const feedbackStats = {
-    total: feedback.length,
-    withRating: feedback.filter((item) => item.rating_score !== null).length,
+    total: allFeedback.length,
+    withRating: allFeedback.filter((item) => item.rating_score !== null).length,
     averageRating:
-      feedback.reduce((sum, item) => sum + (item.rating_score || 0), 0) /
-      (feedback.filter((item) => item.rating_score !== null).length || 1),
+      allFeedback.reduce((sum, item) => sum + (item.rating_score || 0), 0) /
+      (allFeedback.filter((item) => item.rating_score !== null).length || 1),
     countByRating: {
-      1: feedback.filter((item) => item.rating_score === 1).length,
-      2: feedback.filter((item) => item.rating_score === 2).length,
-      3: feedback.filter((item) => item.rating_score === 3).length,
-      4: feedback.filter((item) => item.rating_score === 4).length,
-      5: feedback.filter((item) => item.rating_score === 5).length,
+      1: allFeedback.filter((item) => item.rating_score === 1).length,
+      2: allFeedback.filter((item) => item.rating_score === 2).length,
+      3: allFeedback.filter((item) => item.rating_score === 3).length,
+      4: allFeedback.filter((item) => item.rating_score === 4).length,
+      5: allFeedback.filter((item) => item.rating_score === 5).length,
     },
   };
+
+  // DEBUG: Log stats whenever they change
+  console.log("[FeedbackList] Current feedback stats:", feedbackStats);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -181,12 +257,19 @@ export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
   };
 
   if (loading) {
+    console.log("[FeedbackList] Rendering loading state");
     return (
       <div className="container mx-auto p-4 flex justify-center items-center min-h-[60vh]">
         <p>Loading feedback...</p>
       </div>
     );
   }
+
+  console.log("[FeedbackList] Rendering main component");
+  console.log("  - allFeedback length:", allFeedback.length);
+  console.log("  - doctorFeedback length:", doctorFeedback.length);
+  console.log("  - clinicFeedback length:", clinicFeedback.length);
+  console.log("  - error:", error);
 
   return (
     <div className="container mx-auto p-4">
@@ -258,7 +341,7 @@ export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {feedback.filter((item) => item.comments?.trim()).length}
+              {allFeedback.filter((item) => item.comments?.trim()).length}
             </div>
             <p className="text-xs text-muted-foreground">
               With detailed comments
@@ -285,7 +368,7 @@ export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
             </TabsList>
 
             <TabsContent value="all">
-              {renderFeedbackTable(feedback)}
+              {renderFeedbackTable(allFeedback)}
             </TabsContent>
 
             <TabsContent value="doctor">
@@ -298,13 +381,13 @@ export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
 
             <TabsContent value="withComments">
               {renderFeedbackTable(
-                feedback.filter((item) => item.comments?.trim())
+                allFeedback.filter((item) => item.comments?.trim())
               )}
             </TabsContent>
 
             <TabsContent value="highRated">
               {renderFeedbackTable(
-                feedback.filter((item) => (item.rating_score || 0) >= 4)
+                allFeedback.filter((item) => (item.rating_score || 0) >= 4)
               )}
             </TabsContent>
           </Tabs>
@@ -314,7 +397,13 @@ export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
   );
 
   function renderFeedbackTable(items: FeedbackItem[]) {
+    console.log(
+      "[FeedbackList] renderFeedbackTable called with items:",
+      items.length
+    );
+
     if (items.length === 0) {
+      console.log("[FeedbackList] No items to render - showing empty state");
       return (
         <div className="text-center py-8">
           <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -326,7 +415,7 @@ export default function FeedbackList({ isAdmin = false }: FeedbackListProps) {
       );
     }
 
-    console.log("Rendering feedback items:", items); // Add this for debugging
+    console.log("[FeedbackList] Rendering table with", items.length, "items");
 
     return (
       <Table>

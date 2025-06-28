@@ -10,22 +10,19 @@ export const getAllFeedback = async (
   try {
     console.log(`[getAllFeedback] Starting fetch for all feedback.`);
 
-    const [feedbackWithService, feedbackWithoutService] = await Promise.all([
-      prisma.feedback.findMany({
-        where: { service_id: { not: null } },
-        orderBy: { submission_date: "desc" },
-        include: {
-          service: {
-            include: {
-              doctor: {
-                include: {
-                  employee: {
-                    include: {
-                      user: {
-                        select: {
-                          first_name: true,
-                          last_name: true,
-                        },
+    const allFeedback = await prisma.feedback.findMany({
+      orderBy: { submission_date: "desc" },
+      include: {
+        service: {
+          include: {
+            doctor: {
+              include: {
+                employee: {
+                  include: {
+                    user: {
+                      select: {
+                        first_name: true,
+                        last_name: true,
                       },
                     },
                   },
@@ -33,34 +30,23 @@ export const getAllFeedback = async (
               },
             },
           },
-          serviceParticipant: {
-            include: {
-              patient: {
-                include: {
-                  user: {
-                    select: {
-                      first_name: true,
-                      last_name: true,
-                    },
+        },
+        serviceParticipant: {
+          include: {
+            patient: {
+              include: {
+                user: {
+                  select: {
+                    first_name: true,
+                    last_name: true,
                   },
                 },
               },
             },
           },
         },
-      }),
-      prisma.feedback.findMany({
-        where: { service_id: null },
-        orderBy: { submission_date: "desc" },
-      }),
-    ]);
-
-    const allFeedback = [...feedbackWithService, ...feedbackWithoutService];
-    allFeedback.sort(
-      (a, b) =>
-        new Date(b.submission_date).getTime() -
-        new Date(a.submission_date).getTime()
-    );
+      },
+    });
 
     console.log(
       `[getAllFeedback] Successfully processed ${allFeedback.length} feedback records`
@@ -71,6 +57,7 @@ export const getAllFeedback = async (
     res.status(500).json({ message: "Failed to fetch feedback" });
   }
 };
+
 // Get feedback by ID
 export const getFeedbackById = async (
   req: Request,
@@ -135,12 +122,9 @@ export const getDoctorFeedback = async (
       return;
     }
 
-    // Updated query to explicitly filter by target_type
     const feedback = await prisma.feedback.findMany({
       where: {
-        // The feedback must be explicitly for a DOCTOR
         target_type: "DOCTOR",
-        // And it must be for a service performed by that doctor
         service: {
           doctor: {
             doctor_id: doctorId,
@@ -456,86 +440,6 @@ export const getClinicFeedback = async (
   } catch (error) {
     console.error("Error fetching clinic feedback:", error);
     res.status(500).json({ message: "Failed to fetch clinic feedback" });
-  }
-};
-
-// Add a combined function to get all feedback for a specific doctor, including both personal and clinic feedback for their services
-export const getDoctorAllFeedback = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const doctorId = parseInt(req.params.id, 10);
-    if (isNaN(doctorId)) {
-      res.status(400).json({ message: "Invalid doctor ID" });
-      return;
-    }
-    debugger;
-    // Get all feedback related to this doctor's services
-    const doctorServicesFeedback = await prisma.feedback.findMany({
-      where: {
-        service: {
-          doctor: {
-            doctor_id: doctorId,
-          },
-        },
-      },
-      include: {
-        service: {
-          include: {
-            doctor: {
-              include: {
-                employee: {
-                  include: {
-                    user: {
-                      select: {
-                        first_name: true,
-                        last_name: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        serviceParticipant: {
-          include: {
-            patient: {
-              include: {
-                user: {
-                  select: {
-                    first_name: true,
-                    last_name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        submission_date: "desc",
-      },
-    });
-
-    // Only get doctor-specific feedback, not clinic feedback without service
-    // This ensures doctors only see feedback explicitly about them
-    const categorizedFeedback = {
-      all: doctorServicesFeedback,
-      doctorSpecific: doctorServicesFeedback.filter(
-        (item) => item.target_type === "DOCTOR"
-      ),
-      // This is the key change:
-      clinicFeedback: doctorServicesFeedback.filter(
-        (item) => item.target_type === "SERVICE"
-      ),
-    };
-
-    res.json(categorizedFeedback);
-  } catch (error) {
-    console.error("Error fetching doctor's feedback:", error);
-    res.status(500).json({ message: "Failed to fetch feedback" });
   }
 };
 

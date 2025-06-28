@@ -37,14 +37,6 @@ router.get(
   feedbackController.getClinicFeedback
 );
 
-// Get all feedback related to a doctor's services -> Doctor or Admin
-router.get(
-  "/doctor/:id/all",
-  authenticateToken,
-  authorize(["admin", "doctor"]),
-  feedbackController.getDoctorAllFeedback
-);
-
 // Create new feedback -> Patient only
 router.post(
   "/",
