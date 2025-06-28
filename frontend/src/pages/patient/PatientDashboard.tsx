@@ -139,6 +139,11 @@ export default function PatientDashboard() {
                   Appointment History
                 </Button>
               </Link>
+              <Link to="/patient/appointments/upcoming">
+                <Button className="w-full" variant="outline">
+                  Upcoming Appointments
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

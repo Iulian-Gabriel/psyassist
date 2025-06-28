@@ -374,3 +374,41 @@ export const getAppointmentsByDate = async (
     res.status(500).json({ message: "Failed to fetch appointments" });
   }
 };
+
+export const completeService = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const serviceId = parseInt(req.params.id, 10);
+    if (isNaN(serviceId)) {
+      res.status(400).json({ message: "Invalid service ID" });
+      return;
+    }
+
+    const service = await prisma.service.findUnique({
+      where: { service_id: serviceId },
+    });
+
+    if (!service) {
+      res.status(404).json({ message: "Service not found" });
+      return;
+    }
+
+    // You can add logic here to prevent completing an already cancelled service
+    if (service.status === "Cancelled") {
+      res.status(409).json({ message: "Cannot complete a cancelled service." });
+      return;
+    }
+
+    const updatedService = await prisma.service.update({
+      where: { service_id: serviceId },
+      data: { status: "Completed" },
+    });
+
+    res.json(updatedService);
+  } catch (error) {
+    console.error("Error completing service:", error);
+    res.status(500).json({ message: "Failed to complete service" });
+  }
+};

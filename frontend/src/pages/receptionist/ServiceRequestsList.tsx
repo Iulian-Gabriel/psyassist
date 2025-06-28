@@ -178,9 +178,13 @@ export default function ServiceRequestsList() {
     }
   };
 
-  const handleScheduleAppointment = (requestId: number) => {
+  const handleScheduleAppointment = (request: ServiceRequest) => {
     // Navigate to the appointment calendar with a query parameter
-    navigate(`/receptionist/calendar?requestId=${requestId}`);
+    navigate(`/receptionist/calendar`, {
+      state: {
+        requestFromServiceList: request,
+      },
+    });
   };
 
   const columns: ColumnDef<ServiceRequest>[] = [
@@ -322,7 +326,7 @@ export default function ServiceRequestsList() {
               variant="outline"
               size="sm"
               className="text-blue-600"
-              onClick={() => handleScheduleAppointment(row.original.request_id)}
+              onClick={() => handleScheduleAppointment(row.original)}
             >
               <Calendar className="h-4 w-4 mr-1" />
               Schedule

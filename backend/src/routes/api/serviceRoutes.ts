@@ -5,6 +5,12 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+router.patch(
+  "/:id/complete",
+  authenticateToken,
+  authorize(["doctor", "receptionist", "admin"]),
+  serviceController.completeService
+);
 // Get all services
 router.get("/", authenticateToken, serviceController.getAllServices);
 

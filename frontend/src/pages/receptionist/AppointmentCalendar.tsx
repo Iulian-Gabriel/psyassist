@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import { useLocation, useNavigate } from "react-router-dom";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import {
   format,
@@ -395,6 +396,8 @@ const EventComponent = ({ event }: EventComponentProps) => {
 };
 
 export default function AppointmentCalendar() {
+  const location = useLocation(); // Hook to access the route's state
+  const navigate = useNavigate(); // Hook to clear the state after use
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -430,6 +433,61 @@ export default function AppointmentCalendar() {
   const [doctorFilter, setDoctorFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("Scheduled");
   const [showFilters, setShowFilters] = useState(true);
+
+  useEffect(() => {
+    const request = location.state?.requestFromServiceList;
+
+    if (request && patients.length > 0 && doctors.length > 0) {
+      const timeMap: { [key: string]: string } = {
+        morning: "10:00",
+        afternoon: "14:00",
+        evening: "18:00",
+      };
+
+      const preferredDate = format(
+        new Date(request.preferred_date_1),
+        "yyyy-MM-dd"
+      );
+      const preferredTime =
+        timeMap[request.preferred_time as keyof typeof timeMap] || "10:00";
+      const startTime = new Date(`${preferredDate}T${preferredTime}`);
+      const defaultDuration = 60;
+      const endTime = new Date(startTime.getTime() + defaultDuration * 60000);
+
+      const serviceTypeForState = request.service_type.name.replace(" ", "_");
+
+      // Build the complete state object first
+      const finalAppointmentState = {
+        service_type: "Consultation", // Default to Consultation
+        doctor_id: String(request.preferred_doctor?.doctor_id || ""),
+        patient_id: String(request.patient.patient_id),
+        start_time: format(startTime, "yyyy-MM-dd'T'HH:mm"),
+        end_time: format(endTime, "yyyy-MM-dd'T'HH:mm"),
+        notes: `From Service Request #${
+          request.request_id
+        }.\nPatient's Reason: "${request.reason}"\nAdditional Notes: ${
+          request.additional_notes || "None"
+        }`,
+      };
+
+      // Now, correctly handle patient selection based on service type
+      if (serviceTypeForState === "Group_Consultation") {
+        setSelectedPatients([String(request.patient.patient_id)]);
+        // The patient_id in finalAppointmentState remains an empty string
+      } else {
+        setSelectedPatients([]); // Clear group selection
+        finalAppointmentState.patient_id = String(request.patient.patient_id);
+      }
+
+      // Set the state once with the complete, correct object
+      setNewAppointment(finalAppointmentState);
+
+      setDuration(String(defaultDuration));
+      setShowNewAppointment(true);
+
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate, patients, doctors]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

@@ -5,12 +5,36 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+// Get patient assessment results - accessible to doctors
+router.get(
+  "/:id/assessment-results",
+  authenticateToken,
+  authorize(["doctor", "admin"]),
+  patientController.getPatientAssessmentResults
+);
+
+// Cancel patient's appointment
+router.patch(
+  "/appointments/:serviceId/cancel",
+  authenticateToken,
+  authorize(["patient"]),
+  patientController.cancelPatientAppointment
+);
+
 // Get patient's own appointments history
 router.get(
   "/appointments/history",
   authenticateToken,
   authorize(["patient"]),
   patientController.getPatientAppointmentsHistory
+);
+
+// Get patient's upcoming appointments
+router.get(
+  "/appointments/upcoming",
+  authenticateToken,
+  authorize(["patient"]),
+  patientController.getPatientUpcomingAppointments
 );
 
 // Create a new patient - accessible to admins and receptionists
@@ -33,7 +57,7 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorize(["admin", "receptionist"]),
+  authorize(["admin", "receptionist", "doctor"]),
   patientController.getPatientById
 );
 
