@@ -68,6 +68,8 @@ interface ServiceWithDoctor {
     patient: {
       patient_id: number;
       user: {
+        // Add this
+        user_id: number;
         first_name: string;
         last_name: string;
       };
@@ -230,17 +232,25 @@ export default function ProvideFeedback() {
         response = await api.post("/feedback/general-clinic", payload);
       } else {
         // Service-specific feedback (existing code)
+        // FIX: Compare user_id instead of patient_id
         const patientParticipant = currentService.serviceParticipants.find(
-          (p) => p.patient.patient_id === user?.id
+          (p) => p.patient.user.user_id === user?.id
         );
 
         if (!patientParticipant) {
+          console.error(
+            "Available participants:",
+            currentService.serviceParticipants
+          );
+          console.error("Current user ID:", user?.id);
+          console.error("Looking for user_id in patient records");
           setError("Participant information not found for the current user.");
           return;
         }
+
         const participantId = patientParticipant.participant_id;
 
-        // Existing code for service-specific feedback
+        // Rest of the code remains the same...
         const payload = {
           service_id: selectedServiceId,
           participant_id: participantId,
@@ -262,7 +272,7 @@ export default function ProvideFeedback() {
 
       setSuccess("Thank you for your feedback!");
 
-      // Reset form to its initial state (only the four specified boolean fields)
+      // Reset form (rest of the code remains the same)
       setFormData({
         rating_score: "",
         comments: "",
@@ -270,7 +280,6 @@ export default function ProvideFeedback() {
         feedback_target: "doctor",
         doctor_specific_feedback: "",
         clinic_specific_feedback: "",
-        // Reset NEW Boolean fields
         is_clean_facilities: false,
         is_friendly_staff: false,
         is_easy_accessibility: false,

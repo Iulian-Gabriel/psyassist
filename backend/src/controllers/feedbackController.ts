@@ -116,50 +116,58 @@ export const getDoctorFeedback = async (
   res: Response
 ): Promise<void> => {
   try {
-    const doctorId = parseInt(req.params.id, 10);
-    if (isNaN(doctorId)) {
+    const doctorUserId = parseInt(req.params.id, 10);
+
+    if (isNaN(doctorUserId)) {
       res.status(400).json({ message: "Invalid doctor ID" });
       return;
     }
 
+    console.log(
+      `[getDoctorFeedback] Fetching feedback for doctor user_id: ${doctorUserId}`
+    );
+
+    // Get feedback for services conducted by this doctor
     const feedback = await prisma.feedback.findMany({
       where: {
-        target_type: "DOCTOR",
-        service: {
-          doctor: {
-            doctor_id: doctorId,
+        AND: [
+          {
+            // Feedback must be linked to a service participant
+            serviceParticipant: {
+              service: {
+                doctor: {
+                  employee: {
+                    user_id: doctorUserId,
+                  },
+                },
+              },
+            },
           },
-        },
+          {
+            // Only get doctor-targeted feedback
+            target_type: "DOCTOR",
+          },
+        ],
       },
       include: {
-        service: {
+        serviceParticipant: {
           include: {
-            doctor: {
+            service: {
               include: {
-                employee: {
+                doctor: {
                   include: {
-                    user: {
-                      select: {
-                        first_name: true,
-                        last_name: true,
+                    employee: {
+                      include: {
+                        user: true,
                       },
                     },
                   },
                 },
               },
             },
-          },
-        },
-        serviceParticipant: {
-          include: {
             patient: {
               include: {
-                user: {
-                  select: {
-                    first_name: true,
-                    last_name: true,
-                  },
-                },
+                user: true,
               },
             },
           },
@@ -170,10 +178,31 @@ export const getDoctorFeedback = async (
       },
     });
 
+    console.log(
+      `[getDoctorFeedback] Found ${feedback.length} feedback items for doctor user_id: ${doctorUserId}`
+    );
+
+    // Log some debug info
+    feedback.forEach((f, index) => {
+      console.log(`[getDoctorFeedback] Feedback ${index + 1}:`, {
+        feedback_id: f.feedback_id,
+        rating: f.rating_score,
+        target_type: f.target_type,
+        doctor_name:
+          f.serviceParticipant?.service?.doctor?.employee?.user?.first_name +
+          " " +
+          f.serviceParticipant?.service?.doctor?.employee?.user?.last_name,
+        patient_name:
+          f.serviceParticipant?.patient?.user?.first_name +
+          " " +
+          f.serviceParticipant?.patient?.user?.last_name,
+      });
+    });
+
     res.json(feedback);
   } catch (error) {
     console.error("Error fetching doctor feedback:", error);
-    res.status(500).json({ message: "Failed to fetch doctor feedback" });
+    res.status(500).json({ message: "Failed to fetch feedback" });
   }
 };
 
@@ -329,23 +358,40 @@ export const getServicesForFeedback = async (
 ): Promise<void> => {
   try {
     // Get the patient ID from the query parameters
-    const patientId = parseInt(req.query.patientId as string, 10);
+    const userIdOrPatientId = parseInt(req.query.patientId as string, 10);
 
-    if (isNaN(patientId)) {
+    if (isNaN(userIdOrPatientId)) {
       res.status(400).json({ message: "Invalid patient ID" });
       return;
     }
 
+    // First, try to find the patient by patient_id, if not found, try by user_id
+    let patient = await prisma.patient.findUnique({
+      where: { patient_id: userIdOrPatientId },
+    });
+
+    if (!patient) {
+      patient = await prisma.patient.findUnique({
+        where: { user_id: userIdOrPatientId },
+      });
+    }
+
+    if (!patient) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    const patientId = patient.patient_id;
+
     // Get the services where the patient was a participant and feedback hasn't been submitted yet
     const services = await prisma.service.findMany({
       where: {
+        // First filter: only completed services
+        status: "Completed",
+        // Second filter: patient must be a participant
         serviceParticipants: {
           some: {
             patient_id: patientId,
-            // Only include services that are completed
-            service: {
-              status: "Completed",
-            },
           },
         },
       },
@@ -364,11 +410,25 @@ export const getServicesForFeedback = async (
             patient_id: patientId,
           },
           include: {
-            patient: true,
+            patient: {
+              include: {
+                user: {
+                  // Add this to include user data
+                  select: {
+                    user_id: true,
+                    first_name: true,
+                    last_name: true,
+                  },
+                },
+              },
+            },
             // Include feedback to check if it exists
             feedbacks: true,
           },
         },
+      },
+      orderBy: {
+        start_time: "desc",
       },
     });
 
@@ -377,6 +437,10 @@ export const getServicesForFeedback = async (
       service.serviceParticipants.every(
         (participant) => participant.feedbacks.length === 0
       )
+    );
+
+    console.log(
+      `[getServicesForFeedback] Found ${services.length} completed services, ${servicesWithoutFeedback.length} without feedback`
     );
 
     res.json(servicesWithoutFeedback);
