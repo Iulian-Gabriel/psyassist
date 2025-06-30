@@ -18,7 +18,9 @@ export default function AddEmployeeForm() {
   );
 
   // State for employee role selection
-  const [selectedRole, setSelectedRole] = useState<"admin" | "doctor">("admin");
+  const [selectedRole, setSelectedRole] = useState<
+    "admin" | "doctor" | "receptionist"
+  >("admin");
 
   // Combined form data for all employee types
   const [formData, setFormData] = useState({
@@ -54,7 +56,7 @@ export default function AddEmployeeForm() {
   };
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRole(e.target.value as "admin" | "doctor");
+    setSelectedRole(e.target.value as "admin" | "doctor" | "receptionist");
   };
 
   const handleChange = (
@@ -86,7 +88,11 @@ export default function AddEmployeeForm() {
 
       // Send request to appropriate endpoint based on role
       const endpoint =
-        selectedRole === "doctor" ? "/doctor" : "/employees/admin";
+        selectedRole === "doctor"
+          ? "/doctor"
+          : selectedRole === "receptionist"
+          ? "/employees/receptionist"
+          : "/employees/admin";
 
       await api.post(endpoint, formDataToSubmit);
 
@@ -193,6 +199,7 @@ export default function AddEmployeeForm() {
               >
                 <option value="admin">Administrator</option>
                 <option value="doctor">Doctor</option>
+                <option value="receptionist">Receptionist</option>
               </select>
             </div>
 

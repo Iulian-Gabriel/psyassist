@@ -114,7 +114,7 @@ export default function InitialAssessmentForm() {
 
     if (unansweredQuestions.length > 0) {
       setError(
-        `Vă rugăm să răspundeți la toate întrebările. ${unansweredQuestions.length} întrebări rămân fără răspuns.`
+        `Please answer all questions. ${unansweredQuestions.length} questions remain unanswered.`
       );
       return;
     }
@@ -129,12 +129,14 @@ export default function InitialAssessmentForm() {
       });
 
       navigate("/patient/initial-form/view", {
-        state: { message: "Evaluarea inițială a fost trimisă cu succes!" },
+        state: {
+          message: "Initial assessment has been submitted successfully!",
+        },
       });
     } catch (err: any) {
       console.error("Error submitting assessment:", err);
       setError(
-        "A apărut o eroare la trimiterea evaluării. Vă rugăm să încercați din nou."
+        "An error occurred while submitting the assessment. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -144,7 +146,7 @@ export default function InitialAssessmentForm() {
   if (loading) {
     return (
       <div className="container mx-auto p-4 flex justify-center items-center min-h-[60vh]">
-        <p>Se încarcă formularul de evaluare...</p>
+        <p>Loading assessment form...</p>
       </div>
     );
   }
@@ -152,7 +154,7 @@ export default function InitialAssessmentForm() {
   if (!formStructure) {
     return (
       <div className="container mx-auto p-4">
-        <ApiErrorDisplay error={error || "Formularul nu a putut fi încărcat"} />
+        <ApiErrorDisplay error={error || "Form could not be loaded"} />
       </div>
     );
   }
@@ -170,7 +172,7 @@ export default function InitialAssessmentForm() {
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Progres completare</span>
+            <span>Completion Progress</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -231,11 +233,11 @@ export default function InitialAssessmentForm() {
           disabled={currentSection === 0}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
-          Anterior
+          Previous
         </Button>
 
         <div className="text-sm text-muted-foreground">
-          Secțiunea {currentSection + 1} din {formStructure.sections.length}
+          Section {currentSection + 1} of {formStructure.sections.length}
         </div>
 
         {currentSection < formStructure.sections.length - 1 ? (
@@ -243,7 +245,7 @@ export default function InitialAssessmentForm() {
             onClick={handleNextSection}
             disabled={!isCurrentSectionComplete()}
           >
-            Următorul
+            Next
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
@@ -252,11 +254,11 @@ export default function InitialAssessmentForm() {
             disabled={!isCurrentSectionComplete() || submitting}
           >
             {submitting ? (
-              "Se trimite..."
+              "Submitting..."
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Trimite Evaluarea
+                Submit Assessment
               </>
             )}
           </Button>
