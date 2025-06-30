@@ -187,6 +187,20 @@ export default function ServiceRequestsList() {
     });
   };
 
+  // Add this new function to update request status after successful scheduling
+  const updateRequestToScheduled = (requestId: number) => {
+    setServiceRequests((current) =>
+      current.map((req) =>
+        req.request_id === requestId ? { ...req, status: "scheduled" } : req
+      )
+    );
+
+    // If the details dialog is open, update the selected request as well
+    if (selectedRequest?.request_id === requestId) {
+      setSelectedRequest({ ...selectedRequest, status: "scheduled" });
+    }
+  };
+
   const columns: ColumnDef<ServiceRequest>[] = [
     {
       accessorKey: "request_id",
@@ -364,6 +378,26 @@ export default function ServiceRequestsList() {
     { id: "patient_name", title: "Patient Name" },
     { id: "service_type.name", title: "Service Type" },
   ];
+
+  // Add effect to listen for successful scheduling
+  useEffect(() => {
+    const handleSchedulingSuccess = (event: CustomEvent) => {
+      const { requestId } = event.detail;
+      updateRequestToScheduled(requestId);
+    };
+
+    window.addEventListener(
+      "appointmentScheduled",
+      handleSchedulingSuccess as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "appointmentScheduled",
+        handleSchedulingSuccess as EventListener
+      );
+    };
+  }, [selectedRequest]);
 
   return (
     <div className="container mx-auto p-4">

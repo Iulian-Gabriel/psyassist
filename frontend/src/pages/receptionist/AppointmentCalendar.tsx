@@ -15,6 +15,17 @@ import { enUS } from "date-fns/locale/en-US";
 import api from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -23,18 +34,9 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { AlertTriangle } from "lucide-react";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { Badge } from "@/components/ui/badge";
+
 // Setup the localizer for react-big-calendar
 const locales = {
   "en-US": enUS,
@@ -396,8 +398,8 @@ const EventComponent = ({ event }: EventComponentProps) => {
 };
 
 export default function AppointmentCalendar() {
-  const location = useLocation(); // Hook to access the route's state
-  const navigate = useNavigate(); // Hook to clear the state after use
+  const location = useLocation();
+  const navigate = useNavigate();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -407,6 +409,11 @@ export default function AppointmentCalendar() {
     null
   );
   const [showNewAppointment, setShowNewAppointment] = useState(false);
+
+  // Add state to track the original request ID for scheduling updates
+  const [schedulingRequestId, setSchedulingRequestId] = useState<number | null>(
+    null
+  );
 
   // Add a duration state for easier time calculation
   const [duration, setDuration] = useState("60");
@@ -434,10 +441,18 @@ export default function AppointmentCalendar() {
   const [statusFilter, setStatusFilter] = useState("Scheduled");
   const [showFilters, setShowFilters] = useState(true);
 
+  // Add state for error modal
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorDialogTitle, setErrorDialogTitle] = useState("");
+  const [errorDialogMessage, setErrorDialogMessage] = useState("");
+
   useEffect(() => {
     const request = location.state?.requestFromServiceList;
 
     if (request && patients.length > 0 && doctors.length > 0) {
+      // Store the request ID for later use
+      setSchedulingRequestId(request.request_id);
+
       const timeMap: { [key: string]: string } = {
         morning: "10:00",
         afternoon: "14:00",
@@ -661,8 +676,139 @@ export default function AppointmentCalendar() {
     setShowNewAppointment(true);
   };
 
+  // Add validation function to check for conflicting appointments
+  const validateAppointmentTime = (
+    doctorId: string,
+    startTime: string,
+    endTime: string,
+    excludeEventId?: number
+  ) => {
+    const newStart = new Date(startTime);
+    const newEnd = new Date(endTime);
+
+    // Check for conflicts with existing appointments
+    const conflictingEvent = events.find((event) => {
+      // Skip the event we're potentially updating
+      if (excludeEventId && event.id === excludeEventId) {
+        return false;
+      }
+
+      // Only check events for the same doctor with 'Scheduled' status
+      if (
+        event.resource.doctor.doctor_id.toString() !== doctorId ||
+        event.resource.status !== "Scheduled"
+      ) {
+        return false;
+      }
+
+      const existingStart = new Date(event.resource.start_time);
+      const existingEnd = new Date(event.resource.end_time);
+
+      // Check for time overlap
+      return (
+        (newStart >= existingStart && newStart < existingEnd) || // New start is within existing
+        (newEnd > existingStart && newEnd <= existingEnd) || // New end is within existing
+        (newStart <= existingStart && newEnd >= existingEnd) // New completely encompasses existing
+      );
+    });
+
+    return conflictingEvent;
+  };
+
+  // Helper function to show error modal
+  const showErrorModal = (title: string, message: string) => {
+    setErrorDialogTitle(title);
+    setErrorDialogMessage(message);
+    setShowErrorDialog(true);
+    setError(null); // Clear the banner error since we're showing modal
+  };
+
   const handleCreateAppointment = async () => {
     try {
+      // Validate required fields first
+      if (!newAppointment.doctor_id) {
+        showErrorModal(
+          "Missing Information",
+          "Please select a doctor for this appointment."
+        );
+        return;
+      }
+
+      if (!newAppointment.start_time || !newAppointment.end_time) {
+        showErrorModal(
+          "Missing Information",
+          "Please select both start and end times for the appointment."
+        );
+        return;
+      }
+
+      if (
+        newAppointment.service_type === "Consultation" &&
+        !newAppointment.patient_id
+      ) {
+        showErrorModal(
+          "Missing Information",
+          "Please select a patient for this consultation."
+        );
+        return;
+      }
+
+      if (
+        newAppointment.service_type === "Group_Consultation" &&
+        selectedPatients.length === 0
+      ) {
+        showErrorModal(
+          "Missing Information",
+          "Please select at least one patient for this group consultation."
+        );
+        return;
+      }
+
+      // Validate appointment time before creating
+      const conflictingEvent = validateAppointmentTime(
+        newAppointment.doctor_id,
+        newAppointment.start_time,
+        newAppointment.end_time
+      );
+
+      if (conflictingEvent) {
+        const conflictTime = format(
+          new Date(conflictingEvent.resource.start_time),
+          "PPpp"
+        );
+        const doctorName = doctors.find(
+          (d) => d.doctor_id.toString() === newAppointment.doctor_id
+        );
+
+        showErrorModal(
+          "Scheduling Conflict",
+          `Dr. ${doctorName?.employee.user.first_name} ${doctorName?.employee.user.last_name} already has an appointment scheduled at ${conflictTime}. Please choose a different time or select another doctor.`
+        );
+        return;
+      }
+
+      // Validate that end time is after start time
+      const startDate = new Date(newAppointment.start_time);
+      const endDate = new Date(newAppointment.end_time);
+
+      if (endDate <= startDate) {
+        showErrorModal(
+          "Invalid Time Range",
+          "The end time must be after the start time. Please adjust the appointment duration."
+        );
+        return;
+      }
+
+      // Validate that appointment is not in the past
+      const now = new Date();
+      if (startDate < now) {
+        showErrorModal(
+          "Invalid Date",
+          "Cannot schedule appointments in the past. Please select a future date and time."
+        );
+        return;
+      }
+
       // Prepare the data based on service type
       let requestData;
 
@@ -703,6 +849,18 @@ export default function AppointmentCalendar() {
       setEvents([...events, newEvent]);
       setShowNewAppointment(false);
 
+      // If this appointment was scheduled from a service request, notify the service requests page
+      if (schedulingRequestId) {
+        // Dispatch custom event to notify ServiceRequestsList
+        const event = new CustomEvent("appointmentScheduled", {
+          detail: { requestId: schedulingRequestId },
+        });
+        window.dispatchEvent(event);
+
+        // Clear the scheduling request ID
+        setSchedulingRequestId(null);
+      }
+
       // Reset all form state
       setNewAppointment({
         service_type: "Consultation",
@@ -713,32 +871,69 @@ export default function AppointmentCalendar() {
         notes: "",
       });
       setSelectedPatients([]);
-    } catch (err) {
+      setError(null); // Clear any previous errors
+    } catch (err: any) {
       console.error("Failed to create appointment:", err);
-      setError("Failed to create appointment. Please try again.");
+
+      // Handle specific API errors
+      let errorMessage =
+        "An unexpected error occurred while creating the appointment. Please try again.";
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.status === 400) {
+        errorMessage =
+          "Invalid appointment data. Please check all fields and try again.";
+      } else if (err.response?.status === 409) {
+        errorMessage =
+          "This appointment conflicts with an existing one. Please choose a different time.";
+      } else if (err.response?.status >= 500) {
+        errorMessage =
+          "Server error occurred. Please try again later or contact support.";
+      }
+
+      showErrorModal("Appointment Creation Failed", errorMessage);
     }
   };
 
-  const handleNewAppointmentChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
+  // Update start time handler to show modal errors
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const startTime = new Date(e.target.value);
+    const endTime = new Date(startTime.getTime() + parseInt(duration) * 60000);
+
     setNewAppointment((prev) => ({
       ...prev,
-      [name]: value,
+      start_time: e.target.value,
+      end_time: format(endTime, "yyyy-MM-dd'T'HH:mm"),
     }));
+
+    // Clear any previous errors when time changes
+    setError(null);
+
+    // Validate in real-time if doctor is selected
+    if (newAppointment.doctor_id) {
+      const conflictingEvent = validateAppointmentTime(
+        newAppointment.doctor_id,
+        e.target.value,
+        format(endTime, "yyyy-MM-dd'T'HH:mm")
+      );
+
+      if (conflictingEvent) {
+        const conflictTime = format(
+          new Date(conflictingEvent.resource.start_time),
+          "PPpp"
+        );
+        const doctorName = doctors.find(
+          (d) => d.doctor_id.toString() === newAppointment.doctor_id
+        );
+        setError(
+          `⚠️ Time conflict: Dr. ${doctorName?.employee.user.first_name} ${doctorName?.employee.user.last_name} already has an appointment at ${conflictTime}`
+        );
+      }
+    }
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setNewAppointment((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Update this function to calculate end_time based on duration
+  // Update duration change handler to also validate conflicts
   const handleDurationChange = (value: string) => {
     setDuration(value);
 
@@ -751,19 +946,109 @@ export default function AppointmentCalendar() {
         ...prev,
         end_time: format(endTime, "yyyy-MM-dd'T'HH:mm"),
       }));
+
+      // Clear any previous errors
+      setError(null);
+
+      // Validate conflicts with new duration
+      if (newAppointment.doctor_id) {
+        const conflictingEvent = validateAppointmentTime(
+          newAppointment.doctor_id,
+          newAppointment.start_time,
+          format(endTime, "yyyy-MM-dd'T'HH:mm")
+        );
+
+        if (conflictingEvent) {
+          const conflictTime = format(
+            new Date(conflictingEvent.resource.start_time),
+            "PPpp"
+          );
+          const doctorName = doctors.find(
+            (d) => d.doctor_id.toString() === newAppointment.doctor_id
+          );
+          setError(
+            `⚠️ Time conflict: Dr. ${doctorName?.employee.user.first_name} ${doctorName?.employee.user.last_name} already has an appointment at ${conflictTime}`
+          );
+        }
+      }
     }
   };
 
-  // Update your start time handler to also update end time based on duration
-  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const startTime = new Date(e.target.value);
-    const endTime = new Date(startTime.getTime() + parseInt(duration) * 60000);
-
+  // Update doctor selection to also validate conflicts
+  const handleSelectChange = (name: string, value: string) => {
     setNewAppointment((prev) => ({
       ...prev,
-      start_time: e.target.value,
-      end_time: format(endTime, "yyyy-MM-dd'T'HH:mm"),
+      [name]: value,
     }));
+
+    // Clear any previous errors
+    setError(null);
+
+    // If changing doctor and we have time selected, validate conflicts
+    if (
+      name === "doctor_id" &&
+      newAppointment.start_time &&
+      newAppointment.end_time
+    ) {
+      const conflictingEvent = validateAppointmentTime(
+        value,
+        newAppointment.start_time,
+        newAppointment.end_time
+      );
+
+      if (conflictingEvent) {
+        const conflictTime = format(
+          new Date(conflictingEvent.resource.start_time),
+          "PPpp"
+        );
+        const doctorName = doctors.find(
+          (d) => d.doctor_id.toString() === value
+        );
+        setError(
+          `⚠️ Time conflict: Dr. ${doctorName?.employee.user.first_name} ${doctorName?.employee.user.last_name} already has an appointment at ${conflictTime}`
+        );
+      }
+    }
+  };
+
+  // Add the missing handleNewAppointmentChange function
+  const handleNewAppointmentChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewAppointment((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear any previous errors when form changes
+    setError(null);
+
+    // If changing end time and we have doctor selected, validate conflicts
+    if (
+      name === "end_time" &&
+      newAppointment.doctor_id &&
+      newAppointment.start_time
+    ) {
+      const conflictingEvent = validateAppointmentTime(
+        newAppointment.doctor_id,
+        newAppointment.start_time,
+        value
+      );
+
+      if (conflictingEvent) {
+        const conflictTime = format(
+          new Date(conflictingEvent.resource.start_time),
+          "PPpp"
+        );
+        const doctorName = doctors.find(
+          (d) => d.doctor_id.toString() === newAppointment.doctor_id
+        );
+        setError(
+          `⚠️ Time conflict: Dr. ${doctorName?.employee.user.first_name} ${doctorName?.employee.user.last_name} already has an appointment at ${conflictTime}`
+        );
+      }
+    }
   };
 
   // Update the styles to ensure events properly fit in their time slots
@@ -1024,6 +1309,26 @@ export default function AppointmentCalendar() {
         </DialogContent>
       </Dialog>
 
+      {/* Error Dialog */}
+      <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              {errorDialogTitle}
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              {errorDialogMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowErrorDialog(false)}>
+              Understood
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* New Appointment Dialog with multi-patient support */}
       <Dialog open={showNewAppointment} onOpenChange={setShowNewAppointment}>
         <DialogContent className="sm:max-w-[500px]">
@@ -1247,11 +1552,18 @@ export default function AppointmentCalendar() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowNewAppointment(false)}
+              onClick={() => {
+                setShowNewAppointment(false);
+                setError(null); // Clear errors when closing
+                setSchedulingRequestId(null); // Clear scheduling request ID
+              }}
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateAppointment}>
+            <Button
+              onClick={handleCreateAppointment}
+              disabled={!!error} // Keep the existing real-time validation disable
+            >
               Confirm Appointment
             </Button>
           </DialogFooter>
