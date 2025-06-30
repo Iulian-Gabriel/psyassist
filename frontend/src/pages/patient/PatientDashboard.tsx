@@ -106,13 +106,8 @@ export default function PatientDashboard() {
               Access your medical documents and notices
             </p>
             <div className="space-y-2">
-              <Link to="/patient/documents/tests">
-                <Button className="w-full">Test Results</Button>
-              </Link>
               <Link to="/patient/documents/notices">
-                <Button className="w-full" variant="outline">
-                  Doctor Notices
-                </Button>
+                <Button className="w-full">Doctor Notices</Button>
               </Link>
             </div>
           </CardContent>

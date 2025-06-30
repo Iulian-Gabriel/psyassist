@@ -185,11 +185,6 @@ export default function DoctorDashboard() {
             <Link to="/doctor/feedback">
               <Button className="w-full">View All Feedback</Button>
             </Link>
-            <Link to="/doctor/feedback/request">
-              <Button className="w-full" variant="outline">
-                Request New Feedback
-              </Button>
-            </Link>
           </div>
         </CardContent>
       </Card>

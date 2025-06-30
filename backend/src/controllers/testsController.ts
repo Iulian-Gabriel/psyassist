@@ -384,3 +384,50 @@ export const submitTest = async (
     res.status(500).json({ message: "Failed to submit test" });
   }
 };
+
+// Get all completed tests (admin only)
+export const getAllCompletedTests = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const completedTests = await prisma.testInstance.findMany({
+      where: {
+        testStopDate: {
+          not: null, // Only tests that have been completed
+        },
+      },
+      include: {
+        patient: {
+          include: {
+            user: {
+              select: {
+                first_name: true,
+                last_name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        testTemplateVersion: {
+          include: {
+            testTemplate: {
+              select: {
+                test_template_id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        testStopDate: "desc",
+      },
+    });
+
+    res.json(completedTests);
+  } catch (error) {
+    console.error("Error fetching all completed tests:", error);
+    res.status(500).json({ message: "Failed to fetch completed tests" });
+  }
+};

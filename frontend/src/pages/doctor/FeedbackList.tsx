@@ -362,7 +362,9 @@ export default function FeedbackList({ isAdmin = false }) {
             <TabsList className="mb-4">
               <TabsTrigger value="all">All Feedback</TabsTrigger>
               <TabsTrigger value="doctor">Doctor Feedback</TabsTrigger>
-              <TabsTrigger value="clinic">Clinic Feedback</TabsTrigger>
+              {isActuallyAdmin && (
+                <TabsTrigger value="clinic">Clinic Feedback</TabsTrigger>
+              )}
               <TabsTrigger value="withComments">With Comments</TabsTrigger>
               <TabsTrigger value="highRated">Highly Rated</TabsTrigger>
             </TabsList>
@@ -375,9 +377,11 @@ export default function FeedbackList({ isAdmin = false }) {
               {renderFeedbackTable(doctorFeedback)}
             </TabsContent>
 
-            <TabsContent value="clinic">
-              {renderFeedbackTable(clinicFeedback)}
-            </TabsContent>
+            {isActuallyAdmin && (
+              <TabsContent value="clinic">
+                {renderFeedbackTable(clinicFeedback)}
+              </TabsContent>
+            )}
 
             <TabsContent value="withComments">
               {renderFeedbackTable(

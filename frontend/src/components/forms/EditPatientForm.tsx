@@ -31,7 +31,13 @@ interface Role {
   description: string;
 }
 
-export default function EditPatientForm() {
+interface EditPatientFormProps {
+  isReceptionistView?: boolean;
+}
+
+export default function EditPatientForm({
+  isReceptionistView = false,
+}: EditPatientFormProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -157,7 +163,11 @@ export default function EditPatientForm() {
 
       // Navigate back after a delay
       setTimeout(() => {
-        navigate("/admin/patients");
+        if (isReceptionistView) {
+          navigate("/receptionist/patients");
+        } else {
+          navigate("/admin/patients");
+        }
       }, 1500);
     } catch (err: unknown) {
       console.error("Failed to update patient:", err);

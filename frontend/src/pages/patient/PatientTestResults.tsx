@@ -45,6 +45,13 @@ export default function PatientTestResult() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if user is admin
+  const isAdmin = user?.roles?.includes("admin");
+
+  // Determine the back URL based on user role
+  const backUrl = isAdmin ? "/admin/tests/completed" : "/patient/my-tests";
+  const backText = isAdmin ? "Back to All Tests" : "Back to My Tests";
+
   useEffect(() => {
     const fetchTestResult = async () => {
       if (!testInstanceId) return;
@@ -79,9 +86,9 @@ export default function PatientTestResult() {
       <div className="container mx-auto p-4">
         <ApiErrorDisplay error={error} />
         <Button asChild variant="outline" className="mt-4">
-          <Link to="/patient/my-tests">
+          <Link to={backUrl}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to My Tests
+            {backText}
           </Link>
         </Button>
       </div>
@@ -107,9 +114,9 @@ export default function PatientTestResult() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Test Result</h1>
         <Button asChild variant="outline">
-          <Link to="/patient/my-tests">
+          <Link to={backUrl}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to My Tests
+            {backText}
           </Link>
         </Button>
       </div>

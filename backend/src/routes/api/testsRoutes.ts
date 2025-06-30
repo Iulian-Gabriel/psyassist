@@ -33,7 +33,7 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorize(["doctor", "patient"]),
+  authorize(["doctor", "patient", "admin"]),
   testsController.getTestInstance
 );
 
@@ -50,6 +50,14 @@ router.get(
   "/",
   authenticateToken, // Keep authentication but remove role check
   testsController.getAllTests
+);
+
+// Get all completed tests for admin view
+router.get(
+  "/admin/completed",
+  authenticateToken,
+  authorize(["admin"]),
+  testsController.getAllCompletedTests
 );
 
 export default router;

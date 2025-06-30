@@ -308,11 +308,6 @@ export default function ReceptionistDashboard() {
               <Link to="/receptionist/services">
                 <Button className="w-full">View All Services</Button>
               </Link>
-              <Link to="/admin/services/new">
-                <Button className="w-full" variant="outline">
-                  Add New Service
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>

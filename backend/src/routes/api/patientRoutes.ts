@@ -79,7 +79,7 @@ router.patch(
 router.put(
   "/:id",
   authenticateToken,
-  authorize(["admin"]),
+  authorize(["admin", "receptionist"]),
   patientController.updatePatient
 );
 

@@ -3,7 +3,7 @@
 import express from "express";
 // No longer need Request, Response directly here
 import { authenticateToken } from "../../middleware/auth";
-import { authorizeAdmin } from "../../middleware/authorize";
+import { authorize } from "../../middleware/authorize"; // Changed from authorizeAdmin
 // Import the user controller
 import * as userController from "../../controllers/userController";
 
@@ -13,13 +13,18 @@ const router = express.Router();
 router.get("/profile/:id", authenticateToken, userController.getUserProfile);
 
 // Admin-only route for fetching all users
-router.get("/", authenticateToken, authorizeAdmin, userController.getAllUsers);
+router.get(
+  "/",
+  authenticateToken,
+  authorize(["admin"]),
+  userController.getAllUsers
+);
 
 // Add this route to userRoutes.ts
 router.patch(
   "/:id/deactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   userController.deactivateUser
 );
 
@@ -27,15 +32,15 @@ router.patch(
 router.patch(
   "/:id/reactivate",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   userController.reactivateUser
 );
 
-// Add this route
+// Add this route - Allow both admin and receptionist to fetch roles
 router.get(
   "/roles",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin", "receptionist"]),
   userController.getAllRoles
 );
 
@@ -43,13 +48,13 @@ router.get(
 router.get(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   userController.getUserById
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeAdmin,
+  authorize(["admin"]),
   userController.updateUser
 );
 

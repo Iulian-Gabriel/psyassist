@@ -56,10 +56,12 @@ interface Service {
 
 interface ServicesListProps {
   isDoctorView?: boolean;
+  userRole?: string; // Add this prop
 }
 
 export default function ServicesList({
   isDoctorView = false,
+  userRole, // Add this parameter
 }: ServicesListProps) {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,19 +371,22 @@ export default function ServicesList({
                 >
                   <Info className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    handleViewInitialTest(
-                      row.original.serviceParticipants[0].patient.patient_id
-                    )
-                  }
-                  title="View Initial Assessment Results"
-                  className="h-8 w-8 p-0"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
+                {/* Show assessment button only in doctor view */}
+                {isDoctorView && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleViewInitialTest(
+                        row.original.serviceParticipants[0].patient.patient_id
+                      )
+                    }
+                    title="View Initial Assessment Results"
+                    className="h-8 w-8 p-0"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -401,7 +406,8 @@ export default function ServicesList({
                 </Button>
               </>
             )}
-            {!isDoctorView && (
+            {/* Only show assessment button for admin users in non-doctor view */}
+            {!isDoctorView && userRole === "admin" && (
               <Button
                 variant="outline"
                 size="sm"
@@ -441,13 +447,14 @@ export default function ServicesList({
     return baseColumns;
   }, [
     isDoctorView,
+    userRole, // Add this to dependencies
     formatDateTime,
     handleCancelService,
     handleViewServiceModal,
     handleCompleteService,
     handleViewPatientModal,
     handleViewInitialTest,
-    handleViewAssessmentModal, // Add this
+    handleViewAssessmentModal,
   ]);
 
   const searchableColumns = useMemo(() => {

@@ -65,6 +65,7 @@ import TakeTest from "./pages/patient/TakeTest";
 import PatientDetailsPage from "./pages/doctor/PatientDetailsPage.tsx";
 import PatientInitialAssessmentResults from "./pages/doctor/PatientnitialAssessmentResults.tsx";
 import UpcomingAppointments from "./pages/patient/UpcomingAppointments";
+import AllCompletedTests from "./pages/admin/AllCompletedTests";
 
 // --- Example Components (Replace with your actual pages) ---
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -299,6 +300,10 @@ function App() {
             path="/receptionist/patients/:id/view"
             element={<PatientDetails />}
           />
+          <Route
+            path="/receptionist/patients/:id/edit"
+            element={<EditPatientForm isReceptionistView={true} />}
+          />
           <Route path="/receptionist/services" element={<ServicesList />} />
           <Route path="/profile" element={<ProfilePage />} />
           {/* New route for patient notes */}
@@ -339,6 +344,10 @@ function App() {
             element={<ServiceRequestsList />}
           />
           <Route path="/admin/feedback" element={<FeedbackList />} />
+          <Route
+            path="/admin/tests/completed"
+            element={<AllCompletedTests />}
+          />
         </Route>
 
         {/* <Route element={<ProtectedRoute />}>

@@ -139,7 +139,7 @@ export default function PatientsList({
     if (isDoctorView) {
       navigate(`/doctor/patients/${patientId}/view-details`);
     } else if (isReceptionistView) {
-      navigate(`/receptionist/patients/${patientId}/view`);
+      navigate(`/receptionist/patients/${patientId}/view`); // Changed from /edit to /view
     } else {
       navigate(`/admin/patients/${patientId}/edit`); // Admin-specific edit
     }
