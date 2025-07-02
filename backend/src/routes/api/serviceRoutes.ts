@@ -24,6 +24,13 @@ router.get("/:id", authenticateToken, serviceController.getServiceById);
 router.patch("/:id/cancel", authenticateToken, serviceController.cancelService);
 
 router.get(
+  "/appointments/by-date-range",
+  authenticateToken,
+  authorize(["admin", "receptionist", "doctor"]),
+  serviceController.getAppointmentsByDateRange
+);
+
+router.get(
   "/appointments/by-date",
   authenticateToken,
   authorize(["admin", "receptionist", "doctor"]),

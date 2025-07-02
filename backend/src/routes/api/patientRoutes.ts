@@ -5,6 +5,20 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+router.get(
+  "/current/profile",
+  authenticateToken,
+  authorize(["patient"]),
+  patientController.getCurrentPatientProfile
+);
+
+router.get(
+  "/count",
+  authenticateToken,
+  authorize(["admin", "receptionist"]),
+  patientController.getPatientCount
+);
+
 // Get patient assessment results - accessible to doctors
 router.get(
   "/:id/assessment-results",
@@ -82,5 +96,7 @@ router.put(
   authorize(["admin", "receptionist"]),
   patientController.updatePatient
 );
+
+// New route to get patient count - accessible to admins and receptionists
 
 export default router;

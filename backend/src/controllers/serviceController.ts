@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../utils/prisma";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { startOfDay, endOfDay, parseISO } from "date-fns";
+import { parseISO, startOfDay, endOfDay } from "date-fns";
 
 // Get all services
 export const getAllServices = async (
@@ -371,6 +371,90 @@ export const getAppointmentsByDate = async (
     res.json(appointments);
   } catch (error) {
     console.error("Error fetching appointments by date:", error);
+    res.status(500).json({ message: "Failed to fetch appointments" });
+  }
+};
+
+// Get appointments by date range
+export const getAppointmentsByDateRange = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (
+      !startDate ||
+      !endDate ||
+      typeof startDate !== "string" ||
+      typeof endDate !== "string"
+    ) {
+      res.status(400).json({ message: "Start date and end date are required" });
+      return;
+    }
+
+    const startDateTime = startOfDay(parseISO(startDate));
+    const endDateTime = endOfDay(parseISO(endDate));
+
+    const appointmentsWithParticipants = await prisma.service.findMany({
+      where: {
+        start_time: {
+          gte: startDateTime,
+          lte: endDateTime,
+        },
+      },
+      include: {
+        serviceParticipants: {
+          include: {
+            patient: {
+              include: {
+                user: {
+                  select: { first_name: true, last_name: true },
+                },
+              },
+            },
+          },
+        },
+        doctor: {
+          include: {
+            employee: {
+              include: {
+                user: {
+                  select: { first_name: true, last_name: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        start_time: "asc",
+      },
+    });
+
+    // Reshape the data to match what the frontend expects
+    const appointments = appointmentsWithParticipants.map((appt) => ({
+      service_id: appt.service_id,
+      service_type: appt.service_type,
+      start_time: appt.start_time,
+      end_time: appt.end_time,
+      status: appt.status,
+      cancel_reason: appt.cancel_reason,
+      patient: appt.serviceParticipants[0]?.patient || null,
+      doctor: {
+        doctor_id: appt.doctor.doctor_id,
+        employee: {
+          user: {
+            first_name: appt.doctor.employee.user.first_name,
+            last_name: appt.doctor.employee.user.last_name,
+          },
+        },
+      },
+    }));
+
+    res.json(appointments);
+  } catch (error) {
+    console.error("Error fetching appointments by date range:", error);
     res.status(500).json({ message: "Failed to fetch appointments" });
   }
 };

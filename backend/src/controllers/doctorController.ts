@@ -523,3 +523,72 @@ export const getSelectableDoctors = async (
     res.status(500).json({ message: "Failed to fetch doctors for selection" });
   }
 };
+
+export const getDoctorProfile = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        employee: {
+          user_id: userId,
+        },
+      },
+      include: {
+        employee: {
+          include: {
+            user: {
+              select: {
+                user_id: true,
+                first_name: true,
+                last_name: true,
+                email: true,
+                phone_number: true,
+                date_of_birth: true,
+                gender: true,
+                // Fix: Use the correct field names from your schema
+                address_street: true,
+                address_city: true,
+                address_postal_code: true,
+                address_country: true,
+                address_county: true,
+                created_at: true,
+                updated_at: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor profile not found" });
+      return;
+    }
+
+    // Fix: Access the included data correctly
+    res.json({
+      doctor_id: doctor.doctor_id,
+      employee_id: doctor.employee_id,
+      specialization: doctor.specialization || "Clinical Psychologist",
+      bio: doctor.bio,
+      user: doctor.employee.user,
+      employee: {
+        employee_id: doctor.employee.employee_id,
+        hire_date: doctor.employee.hire_date,
+        job_title: doctor.employee.job_title,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching doctor profile:", error);
+    res.status(500).json({ message: "Failed to fetch doctor profile" });
+  }
+};

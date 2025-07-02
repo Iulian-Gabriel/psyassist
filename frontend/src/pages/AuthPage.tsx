@@ -1,6 +1,5 @@
 // frontend/src/pages/AuthPage.tsx
 import React, { useState } from "react";
-// No need for useNavigate here, context handles redirection
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,10 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "../contexts/AuthContext";
-import { LoginCredentials, RegisterFormData } from "../types"; // Import types
+import { LoginCredentials, RegisterFormData } from "../types";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Heart, Shield, UserPlus, LogIn } from "lucide-react";
 
 // Define validation schemas
 const loginSchema = z.object({
@@ -37,40 +37,41 @@ const registerSchema = z.object({
 
 export default function AuthPage() {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [error, setError] = useState<string>(""); // Component-level error message
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  const { login, register } = useAuth(); // Get functions from context
+  const { login, register } = useAuth();
 
   const {
     register: registerField,
     handleSubmit,
     formState: { errors },
+    reset,
+    watch,
   } = useForm<LoginCredentials | RegisterFormData>({
     resolver: zodResolver(isLoginMode ? loginSchema : registerSchema),
   });
 
+  // Watch form values to check if form has data
+  const watchedValues = watch();
+
   const switchModeHandler = () => {
-    // Check if form has data
-    const hasData =
-      email || password || (!isLoginMode && (firstName || lastName || dob));
+    // Check if form has any data
+    const hasData = Object.values(watchedValues).some(
+      (value) => value && value.toString().trim() !== ""
+    );
 
     if (hasData) {
-      // Show confirmation dialog
       const confirmed = window.confirm(
         "Switching modes will clear your entered information. Do you want to continue?"
       );
       if (!confirmed) return;
     }
 
-    // Clear form and switch mode
+    // Clear form, reset validation, and switch mode
+    reset();
     setIsLoginMode((prevMode) => !prevMode);
     setError("");
-    setEmail("");
-    setPassword("");
-    setFirstName("");
-    setLastName("");
-    setDob("");
   };
 
   const onSubmit = async (data: LoginCredentials | RegisterFormData) => {
@@ -79,7 +80,6 @@ export default function AuthPage() {
       setError("");
 
       if (isLoginMode) {
-        // Pass the actual form data that was validated, not the state values
         await login(data as LoginCredentials);
       } else {
         await register(data as RegisterFormData);
@@ -96,136 +96,263 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Card className="w-[380px]">
-        <CardHeader>
-          <CardTitle>{isLoginMode ? "Login" : "Sign Up"}</CardTitle>
-          <CardDescription>
-            {isLoginMode
-              ? "Enter your credentials to access your account."
-              : "Create an account to get started."}
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            {/* Error Message Display */}
-            {error && (
-              <p className="text-sm font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-3 rounded-md">
-                {error}
-              </p>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5"></div>
 
-            {/* Email Field */}
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                {...registerField("email")}
-                type="email"
-                id="email"
-                placeholder="you@example.com"
-                disabled={loading}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-500">{errors.email.message}</p>
-              )}
+      {/* Main Content */}
+      <div className="relative w-full max-w-md">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-lg">
+              <Heart className="w-8 h-8 text-white" />
             </div>
-            {/* Password Field */}
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                {...registerField("password")} // This handles the connection to React Hook Form
-                type="password"
-                id="password"
-                placeholder="••••••••"
-                disabled={loading}
-                autoComplete={isLoginMode ? "current-password" : "new-password"}
-              />
-              {errors.password && (
-                <p className="text-xs text-red-500">
-                  {errors.password.message}
-                </p>
-              )}
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome to{" "}
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              PsyAssist
+            </span>
+          </h1>
+          <p className="text-gray-600">
+            {isLoginMode
+              ? "Sign in to access your mental wellness journey"
+              : "Begin your path to better mental health today"}
+          </p>
+        </div>
+
+        {/* Auth Card */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="text-center pb-6">
+            <div className="flex justify-center mb-4">
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  isLoginMode
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-purple-100 text-purple-600"
+                }`}
+              >
+                {isLoginMode ? (
+                  <LogIn className="w-6 h-6" />
+                ) : (
+                  <UserPlus className="w-6 h-6" />
+                )}
+              </div>
             </div>
-            {/* Signup Only Fields */}
-            {!isLoginMode && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* First/Last name side-by-side */}
-                  <div className="grid w-full items-center gap-1.5">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      {...registerField("firstName")}
-                      type="text"
-                      id="firstName"
-                      placeholder="John"
-                      disabled={loading}
-                      autoComplete="given-name"
-                    />
-                    {"firstName" in errors && errors.firstName && (
-                      <p className="text-xs text-red-500">
-                        {errors.firstName.message}
-                      </p>
-                    )}
+            <CardTitle className="text-2xl font-bold">
+              {isLoginMode ? "Welcome Back" : "Create Account"}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {isLoginMode
+                ? "Enter your credentials to access your account"
+                : "Join thousands on their wellness journey"}
+            </CardDescription>
+          </CardHeader>
+
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <CardContent className="space-y-6">
+              {/* Error Message Display */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  <div className="flex items-center">
+                    <Shield className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">{error}</span>
                   </div>
-                  <div className="grid w-full items-center gap-1.5">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      {...registerField("lastName")}
-                      type="text"
-                      id="lastName"
-                      placeholder="Doe"
-                      disabled={loading}
-                      autoComplete="family-name"
-                    />
-                    {!isLoginMode &&
-                      "lastName" in errors &&
-                      errors.lastName && (
-                        <p className="text-xs text-red-500">
+                </div>
+              )}
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Email Address
+                </Label>
+                <Input
+                  {...registerField("email")}
+                  type="email"
+                  id="email"
+                  placeholder="you@example.com"
+                  disabled={loading}
+                  className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Password
+                </Label>
+                <Input
+                  {...registerField("password")}
+                  type="password"
+                  id="password"
+                  placeholder="••••••••"
+                  disabled={loading}
+                  autoComplete={
+                    isLoginMode ? "current-password" : "new-password"
+                  }
+                  className="h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                />
+                {errors.password && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Signup Only Fields */}
+              {!isLoginMode && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="firstName"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        First Name
+                      </Label>
+                      <Input
+                        {...registerField("firstName")}
+                        type="text"
+                        id="firstName"
+                        placeholder="John"
+                        disabled={loading}
+                        autoComplete="given-name"
+                        className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                      />
+                      {"firstName" in errors && errors.firstName && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {errors.firstName.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="lastName"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Last Name
+                      </Label>
+                      <Input
+                        {...registerField("lastName")}
+                        type="text"
+                        id="lastName"
+                        placeholder="Doe"
+                        disabled={loading}
+                        autoComplete="family-name"
+                        className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                      />
+                      {"lastName" in errors && errors.lastName && (
+                        <p className="text-xs text-red-500 mt-1">
                           {errors.lastName.message}
                         </p>
                       )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="dob"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Date of Birth
+                    </Label>
+                    <Input
+                      {...registerField("dob")}
+                      type="date"
+                      id="dob"
+                      disabled={loading}
+                      autoComplete="bday"
+                      max={new Date().toISOString().split("T")[0]}
+                      className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                    />
+                    {"dob" in errors && errors.dob && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.dob.message}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+
+            <CardFooter className="flex flex-col space-y-4 pt-6">
+              <Button
+                type="submit"
+                className={`w-full h-12 text-base font-medium shadow-lg ${
+                  isLoginMode
+                    ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    : "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                }`}
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Processing...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    {isLoginMode ? (
+                      <LogIn className="w-4 h-4 mr-2" />
+                    ) : (
+                      <UserPlus className="w-4 h-4 mr-2" />
+                    )}
+                    {isLoginMode ? "Sign In" : "Create Account"}
+                  </div>
+                )}
+              </Button>
+
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={switchModeHandler}
+                  className="text-gray-600 hover:text-gray-900 text-sm"
+                  disabled={loading}
+                >
+                  {isLoginMode
+                    ? "Don't have an account? Sign up"
+                    : "Already have an account? Sign in"}
+                </Button>
+              </div>
+
+              {/* Trust indicators */}
+              {!isLoginMode && (
+                <div className="text-center pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 mb-2">
+                    By creating an account, you agree to our terms
+                  </p>
+                  <div className="flex items-center justify-center text-xs text-gray-400">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Secure & GDPR Compliant
                   </div>
                 </div>
-                <div className="grid w-full items-center gap-1.5">
-                  <Label htmlFor="dob">Date of Birth</Label>
-                  <Input
-                    {...registerField("dob")}
-                    type="date"
-                    id="dob" // Uses browser's date picker
-                    disabled={loading}
-                    autoComplete="bday"
-                    max={new Date().toISOString().split("T")[0]} // Prevent future dates
-                  />
-                  {!isLoginMode && "dob" in errors && errors.dob && (
-                    <p className="text-xs text-red-500">{errors.dob.message}</p>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-3 pt-4">
-            {/* Added padding top */}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading
-                ? "Processing..."
-                : isLoginMode
-                ? "Login"
-                : "Create Account"}
-            </Button>
-            <Button
-              type="button" // Important: prevents form submission
-              variant="link"
-              onClick={switchModeHandler}
-              className="w-full text-sm" // Make link smaller
-              disabled={loading}
-            >
-              {isLoginMode
-                ? "Need an account? Sign Up"
-                : "Already have an account? Login"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+              )}
+            </CardFooter>
+          </form>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-8 text-sm text-gray-500">
+          <p>
+            Need help?{" "}
+            <button className="text-blue-600 hover:text-blue-700 underline">
+              Contact Support
+            </button>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

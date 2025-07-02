@@ -752,3 +752,87 @@ export const cancelPatientAppointment = async (
     res.status(500).json({ message: "Failed to cancel appointment" });
   }
 };
+
+// Get patient count
+export const getPatientCount = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { beforeDate } = req.query;
+
+    let whereClause: any = {};
+
+    if (beforeDate && typeof beforeDate === "string") {
+      // Find patients where their user was created before the specified date
+      whereClause = {
+        user: {
+          created_at: {
+            lt: new Date(beforeDate), // Use 'lt' (less than) instead of 'lte'
+          },
+        },
+      };
+    }
+
+    const count = await prisma.patient.count({
+      where: whereClause,
+    });
+
+    res.json({ count });
+  } catch (error) {
+    console.error("Error fetching patient count:", error);
+    res.status(500).json({
+      message: "Failed to fetch patient count",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+// Add this function to your existing patientController.ts
+
+export const getCurrentPatientProfile = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    const patient = await prisma.patient.findUnique({
+      where: { user_id: userId },
+      include: {
+        user: {
+          select: {
+            user_id: true,
+            email: true,
+            first_name: true,
+            last_name: true,
+            phone_number: true,
+            date_of_birth: true,
+            gender: true,
+            address_street: true,
+            address_city: true,
+            address_postal_code: true,
+            address_country: true,
+            address_county: true,
+            is_active: true,
+          },
+        },
+      },
+    });
+
+    if (!patient) {
+      res.status(404).json({ message: "Patient profile not found" });
+      return;
+    }
+
+    res.json(patient);
+  } catch (error) {
+    console.error("Error fetching current patient profile:", error);
+    res.status(500).json({ message: "Failed to fetch patient profile" });
+  }
+};

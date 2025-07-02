@@ -6,6 +6,14 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+// Add this route after your existing routes:
+router.get(
+  "/pending",
+  authenticateToken,
+  authorize(["doctor"]),
+  testsController.getPendingTests
+);
+
 router.put(
   "/:id/submit",
   authenticateToken,

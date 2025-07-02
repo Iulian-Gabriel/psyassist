@@ -6,6 +6,13 @@ import { authorize } from "../../middleware/authorize";
 
 const router = express.Router();
 
+router.get(
+  "/profile",
+  authenticateToken,
+  authorize(["doctor"]),
+  doctorController.getDoctorProfile
+);
+
 // Routes for a doctor to access their own data
 router.get(
   "/current/patients",
@@ -34,6 +41,7 @@ router.get(
   authorize(["patient", "admin", "receptionist"]), // Allow roles that need to create service requests
   doctorController.getSelectableDoctors
 );
+
 // --- Admin-only routes for managing doctors ---
 
 router.get(

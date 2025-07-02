@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../utils/prisma";
-// import { AuthenticatedRequest } from "../types/auth"; // If you have this type
+import { AuthenticatedRequest } from "../middleware/auth"; // If you have this type
 
 // Get all feedback
 export const getAllFeedback = async (
@@ -580,5 +580,81 @@ export const createGeneralClinicFeedback = async (
     res
       .status(500)
       .json({ message: "Failed to create general clinic feedback" });
+  }
+};
+
+// Add this function to get doctor's average rating
+export const getDoctorAverageRating = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Find the doctor record for the authenticated user
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        employee: {
+          user_id: userId,
+        },
+      },
+    });
+
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor profile not found" });
+      return;
+    }
+
+    // Get all feedback for this doctor's services
+    const feedback = await prisma.feedback.findMany({
+      where: {
+        AND: [
+          {
+            serviceParticipant: {
+              service: {
+                doctor: {
+                  doctor_id: doctor.doctor_id,
+                },
+              },
+            },
+          },
+          {
+            target_type: "DOCTOR",
+          },
+          {
+            rating_score: {
+              not: null,
+            },
+          },
+        ],
+      },
+      select: {
+        rating_score: true,
+      },
+    });
+
+    if (feedback.length === 0) {
+      res.json({ averageRating: 0, totalRatings: 0 });
+      return;
+    }
+
+    const totalScore = feedback.reduce(
+      (sum, f) => sum + (f.rating_score || 0),
+      0
+    );
+    const averageRating = totalScore / feedback.length;
+
+    res.json({
+      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+      totalRatings: feedback.length,
+    });
+  } catch (error) {
+    console.error("Error calculating doctor average rating:", error);
+    res.status(500).json({ message: "Failed to calculate average rating" });
   }
 };

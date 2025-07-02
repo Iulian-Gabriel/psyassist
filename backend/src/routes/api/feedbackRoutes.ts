@@ -5,6 +5,14 @@ import { authorize } from "../../middleware/authorize"; // Use the new factory
 
 const router = express.Router();
 
+// Get average rating for a doctor -> Doctor themselves
+router.get(
+  "/doctor/average",
+  authenticateToken,
+  authorize(["doctor"]),
+  feedbackController.getDoctorAverageRating
+);
+
 // Get all feedback -> Admin only
 router.get(
   "/",

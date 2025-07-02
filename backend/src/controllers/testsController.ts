@@ -431,3 +431,87 @@ export const getAllCompletedTests = async (
     res.status(500).json({ message: "Failed to fetch completed tests" });
   }
 };
+
+// Add this function to get pending tests for the authenticated doctor
+export const getPendingTests = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Find the doctor record for the authenticated user
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        employee: {
+          user_id: userId,
+        },
+      },
+    });
+
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor profile not found" });
+      return;
+    }
+
+    // Get all pending test instances for this doctor's patients
+    // A test is pending if it has a start date but no stop date
+    const pendingTests = await prisma.testInstance.findMany({
+      where: {
+        testStopDate: null, // Not completed yet
+        testStartDate: {
+          not: null, // Has been started
+        },
+        // Only get tests for patients who have had services with this doctor
+        patient: {
+          serviceParticipants: {
+            some: {
+              service: {
+                employee_id: doctor.doctor_id,
+              },
+            },
+          },
+        },
+      },
+      include: {
+        patient: {
+          include: {
+            user: {
+              select: {
+                first_name: true,
+                last_name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        testTemplateVersion: {
+          include: {
+            testTemplate: {
+              select: {
+                test_template_id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        testStartDate: "desc",
+      },
+    });
+
+    console.log(
+      `[getPendingTests] Found ${pendingTests.length} pending tests for doctor ${doctor.doctor_id}`
+    );
+    res.json(pendingTests);
+  } catch (error) {
+    console.error("Error fetching pending tests:", error);
+    res.status(500).json({ message: "Failed to fetch pending tests" });
+  }
+};

@@ -21,6 +21,7 @@ import serviceTypeRoutes from "./routes/api/serviceTypeRoutes";
 import doctorRoutes from "./routes/api/doctorRoutes";
 import receptionistRoutes from "./routes/api/receptionistRoutes";
 import initialFormRoutes from "./routes/api/initialFormRoutes";
+import dashboardRoutes from "./routes/api/dashboardRoutes";
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use("/api/doctor", doctorRoutes);
 app.use("/api/service-types", serviceTypeRoutes);
 app.use("/api/receptionists", receptionistRoutes);
 app.use("/api/initial-form", initialFormRoutes);
+app.use("/api/dashboard", dashboardRoutes); // Add this line
 
 // --- Error Handling Middleware ---
 // This should generally be placed AFTER your routes
