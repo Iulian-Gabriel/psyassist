@@ -436,8 +436,6 @@ export const getDoctorPatients = async (
             // At least one service participant record exists
             service: {
               // And that service is linked to this doctor
-              // Based on your schema: Service.employee_id is the foreign key
-              // that references Doctor.doctor_id.
               employee_id: doctor.doctor_id, // Use the doctor_id we just retrieved
             },
           },
@@ -454,7 +452,7 @@ export const getDoctorPatients = async (
             first_name: true,
             last_name: true,
             email: true,
-            // Add any other user fields you need
+            is_active: true,
           },
         },
       },

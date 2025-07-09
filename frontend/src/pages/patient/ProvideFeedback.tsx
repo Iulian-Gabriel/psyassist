@@ -123,6 +123,10 @@ export default function ProvideFeedback() {
     is_smooth_admin_process: false,
   });
 
+  const [patientInfo, setPatientInfo] = useState<{ patient_id: number } | null>(
+    null
+  );
+
   // Fetch available services or specific service
   useEffect(() => {
     const fetchData = async () => {
@@ -150,6 +154,22 @@ export default function ProvideFeedback() {
 
     fetchData();
   }, [serviceIdParam, user?.id]);
+
+  // Fetch patient info
+  useEffect(() => {
+    const fetchPatientInfo = async () => {
+      if (user?.id) {
+        try {
+          const response = await api.get(`/patients/current/profile`);
+          setPatientInfo(response.data);
+        } catch (err) {
+          console.error("Failed to fetch patient info:", err);
+        }
+      }
+    };
+
+    fetchPatientInfo();
+  }, [user?.id]);
 
   // When a service is selected from dropdown
   useEffect(() => {
@@ -217,8 +237,15 @@ export default function ProvideFeedback() {
 
       if (feedbackTarget === "clinic" && !selectedServiceId) {
         // General clinic feedback (without service selection)
+        if (!patientInfo?.patient_id) {
+          setError(
+            "Unable to determine patient information. Please try again."
+          );
+          return;
+        }
+
         const payload = {
-          patient_id: user?.id,
+          patient_id: patientInfo.patient_id,
           rating_score: formData.rating_score,
           comments: formData.comments,
           is_anonymous: formData.is_anonymous,

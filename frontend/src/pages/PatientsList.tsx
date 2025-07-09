@@ -137,7 +137,7 @@ export default function PatientsList({
   const handleEdit = (patientId: number) => {
     // Conditional navigation based on view
     if (isDoctorView) {
-      navigate(`/doctor/patients/${patientId}/view-details`);
+      navigate(`/doctor/patients/${patientId}`);
     } else if (isReceptionistView) {
       navigate(`/receptionist/patients/${patientId}/view`); // Changed from /edit to /view
     } else {
