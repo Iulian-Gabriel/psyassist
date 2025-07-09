@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "@/services/api";
 import { toast } from "sonner";
+import api from "../../services/api";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -29,10 +29,9 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
 } from "@/components/ui/command";
-import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, ChevronsUpDown, Check } from "lucide-react";
+import ApiErrorDisplay from "../../components/ui/ApiErrorDisplay";
 import { cn } from "@/lib/utils";
 
 // Interfaces based on your Prisma schema
@@ -209,11 +208,15 @@ export default function AssignTest() {
                     >
                       {selectedPatientId
                         ? patients.find(
-                            (p) => p.patient_id.toString() === selectedPatientId
+                            (patient) =>
+                              patient.patient_id.toString() ===
+                              selectedPatientId
                           )?.user.first_name +
                           " " +
                           patients.find(
-                            (p) => p.patient_id.toString() === selectedPatientId
+                            (patient) =>
+                              patient.patient_id.toString() ===
+                              selectedPatientId
                           )?.user.last_name
                         : "Select patient..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -221,43 +224,41 @@ export default function AssignTest() {
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                     <Command>
-                      <CommandInput placeholder="Search patient by name or email..." />
-                      <CommandList>
-                        <CommandEmpty>No patient found.</CommandEmpty>
-                        <CommandGroup>
-                          {patients.map((patient) => (
-                            <CommandItem
-                              key={patient.patient_id}
-                              value={`${patient.user.first_name} ${patient.user.last_name} ${patient.user.email}`}
-                              onSelect={() => {
-                                setSelectedPatientId(
+                      <CommandInput placeholder="Search patient..." />
+                      <CommandEmpty>No patient found.</CommandEmpty>
+                      <CommandGroup>
+                        {patients.map((patient) => (
+                          <CommandItem
+                            key={patient.patient_id}
+                            value={`${patient.user.first_name} ${patient.user.last_name} ${patient.user.email}`}
+                            onSelect={() => {
+                              setSelectedPatientId(
+                                patient.patient_id.toString()
+                              );
+                              setPatientPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedPatientId ===
                                   patient.patient_id.toString()
-                                );
-                                setPatientPopoverOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedPatientId ===
-                                    patient.patient_id.toString()
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              <div>
-                                <p className="font-medium">
-                                  {patient.user.first_name}{" "}
-                                  {patient.user.last_name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {patient.user.email}
-                                </p>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            <div>
+                              <p>
+                                {patient.user.first_name}{" "}
+                                {patient.user.last_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {patient.user.email}
+                              </p>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
                     </Command>
                   </PopoverContent>
                 </Popover>
