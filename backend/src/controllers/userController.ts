@@ -4,9 +4,14 @@ import { Request, Response } from "express";
 import * as userService from "../services/userService";
 import { User } from "@prisma/client"; // Optional: For stronger typing if needed
 import prisma from "../utils/prisma"; // Add this import
+import bcrypt from "bcrypt";
+import { z } from "zod";
 
 interface AuthenticatedRequest extends Request {
-  userId?: string; // Should be guaranteed by authenticateToken middleware
+  user?: {
+    userId: number;
+    roles: string[];
+  };
 }
 
 //Gets the profile information for the authenticated user.
@@ -16,8 +21,14 @@ export const getUserProfile = async (
   res: Response
 ): Promise<void> => {
   try {
-    const requestedUserId = req.params.id; // Get ID from URL parameter
-    const authenticatedUserId = req.userId; // Get ID from auth token
+    const requestedUserId = parseInt(req.params.id, 10); // Get ID from URL parameter
+    const authenticatedUserId = req.user?.userId; // Get ID from auth token
+    const authenticatedUserRoles = req.user?.roles || [];
+
+    if (isNaN(requestedUserId)) {
+      res.status(400).json({ message: "Invalid user ID format." });
+      return;
+    }
 
     if (!authenticatedUserId) {
       console.error("Error: userId missing from request after authentication.");
@@ -26,16 +37,19 @@ export const getUserProfile = async (
       return;
     }
 
-    // 2. Authorization Check: Compare token ID with requested ID
-    if (authenticatedUserId !== requestedUserId) {
+    // Authorization Check: Allow access if IDs match OR if the user is an admin
+    if (
+      authenticatedUserId !== requestedUserId &&
+      !authenticatedUserRoles.includes("admin")
+    ) {
       res.status(403).json({
         message: "Forbidden: You are not authorized to view this profile.",
       });
-      return; // Stop execution if IDs don't match
+      return; // Stop execution if not authorized
     }
 
-    // Fetch the user using the ID from the token payload
-    const user = await userService.findById(authenticatedUserId);
+    // Fetch the user using the ID from the URL parameter
+    const user = await userService.findById(String(requestedUserId));
 
     if (!user) {
       // This could happen if the user was deleted after the token was issued
@@ -262,3 +276,130 @@ export const getAllRoles = async (
 
 // You can add other user-related controller functions here later, e.g.:
 // export const updateUserProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => { ... };
+
+// Validation schema for updating a user profile
+const updateUserProfileSchema = z.object({
+  first_name: z.string().min(1, "First name is required").optional(),
+  last_name: z.string().min(1, "Last name is required").optional(),
+  email: z.string().email("Invalid email format").optional(),
+  phone_number: z.string().optional().nullable(),
+  address_street: z.string().optional().nullable(),
+  address_city: z.string().optional().nullable(),
+  address_postal_code: z.string().optional().nullable(),
+  address_county: z.string().optional().nullable(),
+  address_country: z.string().optional().nullable(),
+  date_of_birth: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
+});
+
+export const updateUserProfile = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Authentication error" });
+      return;
+    }
+
+    const validatedData = updateUserProfileSchema.parse(req.body);
+
+    const dataToUpdate: any = { ...validatedData };
+    if (validatedData.date_of_birth) {
+      dataToUpdate.date_of_birth = new Date(validatedData.date_of_birth);
+    }
+
+    // If email is being updated, check if it's already taken by another user
+    if (validatedData.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: validatedData.email,
+          NOT: {
+            user_id: userId,
+          },
+        },
+      });
+      if (existingUser) {
+        res
+          .status(409)
+          .json({ message: "Email is already in use by another account." });
+        return;
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { user_id: userId },
+      data: dataToUpdate,
+    });
+
+    const { password_hash, ...userWithoutPassword } = updatedUser;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Invalid data provided", details: error.errors });
+    } else {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Server error updating profile" });
+    }
+  }
+};
+
+// Validation schema for changing password
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, "Old password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+
+export const changePassword = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Authentication error" });
+      return;
+    }
+
+    const { oldPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      oldPassword,
+      user.password_hash
+    );
+    if (!isPasswordValid) {
+      res.status(400).json({ message: "Incorrect old password" });
+      return;
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: { password_hash: newPasswordHash },
+    });
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Invalid data provided", details: error.errors });
+    } else {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Server error changing password" });
+    }
+  }
+};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "@/services/api";
 import { toast } from "sonner";
 import {
@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,8 +18,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import ApiErrorDisplay from "@/components/ui/ApiErrorDisplay";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Interfaces based on your Prisma schema
 interface Patient {
@@ -49,7 +62,9 @@ export default function AssignTest() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [testForms, setTestForms] = useState<TestTemplate[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+
+  // State for the combobox
+  const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
 
   // Form state
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
@@ -146,19 +161,10 @@ export default function AssignTest() {
     }
   };
 
-  const filteredPatients = patients.filter((patient) => {
-    const fullName =
-      `${patient.user.first_name} ${patient.user.last_name}`.toLowerCase();
-    return (
-      fullName.includes(searchTerm.toLowerCase()) ||
-      patient.user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-
   if (loading) {
     return (
       <div className="container mx-auto p-4 flex justify-center items-center min-h-[60vh]">
-        <p>Loading...</p>
+        <p>Loading data for test assignment...</p>
       </div>
     );
   }
@@ -166,10 +172,12 @@ export default function AssignTest() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Assign Test to Patient</h1>
-        <Button variant="outline" onClick={() => navigate("/patient-tests")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Tests
+        <h1 className="text-3xl font-bold">Assign a New Test</h1>
+        <Button variant="outline" asChild>
+          <Link to="/doctor/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
         </Button>
       </div>
 
@@ -177,98 +185,109 @@ export default function AssignTest() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Assign Test</CardTitle>
+          <CardTitle>Assignment Details</CardTitle>
           <CardDescription>
-            Select a patient and a test form to assign
+            Select a patient and the psychological test you want to assign.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="search">Search Patient</Label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search by name or email"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Patient Selection Combobox */}
+              <div className="space-y-2">
                 <Label htmlFor="patient">Select Patient</Label>
-                <Select
-                  value={selectedPatientId}
-                  onValueChange={setSelectedPatientId}
-                  disabled={submitting}
+                <Popover
+                  open={patientPopoverOpen}
+                  onOpenChange={setPatientPopoverOpen}
                 >
-                  <SelectTrigger id="patient" className="w-full">
-                    <SelectValue placeholder="Select patient" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredPatients.length === 0 ? (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        No patients found
-                      </div>
-                    ) : (
-                      filteredPatients.map((patient) =>
-                        patient && patient.patient_id ? (
-                          <SelectItem
-                            key={patient.patient_id}
-                            value={patient.patient_id.toString()}
-                          >
-                            {patient.user?.first_name || ""}{" "}
-                            {patient.user?.last_name || ""} (
-                            {patient.user?.email || "No email"})
-                          </SelectItem>
-                        ) : null
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={patientPopoverOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedPatientId
+                        ? patients.find(
+                            (p) => p.patient_id.toString() === selectedPatientId
+                          )?.user.first_name +
+                          " " +
+                          patients.find(
+                            (p) => p.patient_id.toString() === selectedPatientId
+                          )?.user.last_name
+                        : "Select patient..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search patient by name or email..." />
+                      <CommandList>
+                        <CommandEmpty>No patient found.</CommandEmpty>
+                        <CommandGroup>
+                          {patients.map((patient) => (
+                            <CommandItem
+                              key={patient.patient_id}
+                              value={`${patient.user.first_name} ${patient.user.last_name} ${patient.user.email}`}
+                              onSelect={() => {
+                                setSelectedPatientId(
+                                  patient.patient_id.toString()
+                                );
+                                setPatientPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedPatientId ===
+                                    patient.patient_id.toString()
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              <div>
+                                <p className="font-medium">
+                                  {patient.user.first_name}{" "}
+                                  {patient.user.last_name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {patient.user.email}
+                                </p>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              <div>
+              {/* Test Form Selection */}
+              <div className="space-y-2">
                 <Label htmlFor="form">Select Test Form</Label>
                 <Select
                   value={selectedFormId}
                   onValueChange={setSelectedFormId}
-                  disabled={submitting}
                 >
-                  <SelectTrigger id="form" className="w-full">
-                    <SelectValue placeholder="Select test form" />
+                  <SelectTrigger id="form">
+                    <SelectValue placeholder="Choose a test form" />
                   </SelectTrigger>
                   <SelectContent>
-                    {testForms.length === 0 ? (
-                      <div className="p-2 text-center text-sm text-muted-foreground">
-                        No test forms available
-                      </div>
-                    ) : (
-                      testForms.map((form) =>
-                        form && form.form_id ? (
-                          <SelectItem
-                            key={form.form_id}
-                            value={form.form_id.toString()}
-                          >
-                            {form.title || "Unnamed form"}
-                          </SelectItem>
-                        ) : null
-                      )
-                    )}
+                    {testForms.map((form) => (
+                      <SelectItem
+                        key={form.form_id}
+                        value={form.form_id.toString()}
+                      >
+                        {form.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={submitting || !selectedPatientId || !selectedFormId}
-              >
+              <Button type="submit" disabled={submitting}>
                 {submitting ? "Assigning..." : "Assign Test"}
               </Button>
             </div>

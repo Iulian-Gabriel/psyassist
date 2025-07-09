@@ -277,20 +277,19 @@ export default function AdminDashboard() {
       : 0;
 
   // Prepare chart data
+  // Corrected User Distribution Logic:
+  // The sum of chart categories must equal totalUsers.
+  // We calculate "Other Staff" by subtracting patients and doctors from the total user count.
+  // This accounts for all other roles (e.g., receptionists, admins) without double-counting.
+  const otherStaffCount = Math.max(
+    0,
+    stats.totalUsers - stats.totalPatients - stats.totalDoctors
+  );
+
   const userDistributionData = [
     { label: "Patients", value: stats.totalPatients },
     { label: "Doctors", value: stats.totalDoctors },
-    { label: "Staff", value: stats.totalEmployees },
-    {
-      label: "Admin",
-      value: Math.max(
-        1,
-        stats.totalUsers -
-          stats.totalPatients -
-          stats.totalDoctors -
-          stats.totalEmployees
-      ),
-    },
+    { label: "Other Staff", value: otherStaffCount },
   ];
 
   if (loading) {

@@ -82,7 +82,8 @@ export default function AllCompletedTests() {
       header: ({ column }) => <ColumnHeader column={column} title="Email" />,
     },
     {
-      accessorKey: "testTemplateVersion.testTemplate.name",
+      id: "test_name",
+      accessorFn: (row) => row.testTemplateVersion.testTemplate.name,
       header: ({ column }) => (
         <ColumnHeader column={column} title="Test Name" />
       ),
@@ -123,7 +124,7 @@ export default function AllCompletedTests() {
   const searchableColumns = [
     { id: "patient_name", title: "Patient Name" },
     { id: "patient.user.email", title: "Email" },
-    { id: "testTemplateVersion.testTemplate.name", title: "Test Name" },
+    { id: "test_name", title: "Test Name" },
   ];
 
   if (loading) {

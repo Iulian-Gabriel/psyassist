@@ -9,6 +9,14 @@ import * as userController from "../../controllers/userController";
 
 const router = express.Router();
 
+// Add these routes for the profile page
+router.put("/profile", authenticateToken, userController.updateUserProfile);
+router.put(
+  "/profile/change-password",
+  authenticateToken,
+  userController.changePassword
+);
+
 // User routes
 router.get("/profile/:id", authenticateToken, userController.getUserProfile);
 

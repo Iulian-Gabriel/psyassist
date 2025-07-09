@@ -20,6 +20,40 @@ export const getUserProfile = async (
       errorMessage = error.message;
     }
     console.error("API Get Profile Error:", errorMessage);
-    throw new Error(errorMessage);
+    throw new Error(error.response?.data?.message || "Failed to fetch user");
+  }
+};
+
+export const updateUserProfile = async (profileData: any) => {
+  try {
+    const response = await api.put("/users/profile", profileData);
+    return response.data;
+  } catch (error: any) {
+    // More specific error handling
+    if (error.response?.status === 409) {
+      throw new Error("This email is already in use by another account.");
+    }
+    throw new Error(
+      error.response?.data?.message ||
+        "An error occurred while updating your profile."
+    );
+  }
+};
+
+export const changePassword = async (
+  oldPassword: string,
+  newPassword: string
+) => {
+  try {
+    const response = await api.put("/users/profile/change-password", {
+      oldPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+        "An error occurred while changing your password."
+    );
   }
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import api from "@/services/api";
-// import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -77,6 +77,7 @@ interface ServiceRequest {
 
 export default function ServiceRequestsList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +92,8 @@ export default function ServiceRequestsList() {
     { id: "created_at", desc: true }, // Then by creation date, most recent first
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  const isReceptionist = user?.roles?.includes("receptionist");
 
   useEffect(() => {
     const fetchServiceRequests = async () => {
@@ -329,17 +332,14 @@ export default function ServiceRequestsList() {
                   setShowRejectDialog(true);
                 }}
               >
-                <ThumbsDown className="h-4 w-4 mr-1" />
-                Reject
+                <ThumbsDown className="h-4 w-4 mr-1" /> Reject
               </Button>
             </>
           )}
-
-          {row.original.status === "approved" && (
+          {row.original.status === "approved" && isReceptionist && (
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              className="text-blue-600"
               onClick={() => handleScheduleAppointment(row.original)}
             >
               <Calendar className="h-4 w-4 mr-1" />

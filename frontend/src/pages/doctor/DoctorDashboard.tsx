@@ -40,6 +40,7 @@ import {
   Brain,
   PlusCircle,
   Eye,
+  FileSpreadsheet,
 } from "lucide-react";
 import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
 
@@ -536,6 +537,13 @@ export default function DoctorDashboard() {
                   <Button className="w-full h-20 flex flex-col items-center justify-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
                     <Brain className="w-6 h-6 mb-2" />
                     <span className="text-sm">Patient Tests</span>
+                  </Button>
+                </Link>
+
+                <Link to="/doctor/notices">
+                  <Button className="w-full h-20 flex flex-col items-center justify-center bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700">
+                    <FileSpreadsheet className="w-6 h-6 mb-2" />
+                    <span>Manage Notices</span>
                   </Button>
                 </Link>
 

@@ -3,7 +3,7 @@ import { AuthenticatedRequest } from "../middleware/auth";
 import prisma from "../utils/prisma";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 
-// Define the activity interface
+// Define the Activity interface for type safety
 interface Activity {
   type:
     | "appointment"

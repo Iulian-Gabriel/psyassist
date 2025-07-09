@@ -1,8 +1,8 @@
 // backend/src/app.ts
 import express, { Request, Response, NextFunction } from "express";
-import cors from "cors"; // Ensure cors is imported
+import cors from "cors";
 import cookieParser from "cookie-parser";
-import { config } from "./config/env"; // Your simplified env config
+import { config } from "./config/env";
 
 // Import routes
 import authRoutes from "./routes/api/authRoutes";
@@ -27,12 +27,10 @@ const app = express();
 
 // --- CORS Configuration (Simplified) ---
 const corsOptions: cors.CorsOptions = {
-  // Directly use the single URL from config
-  // This allows requests ONLY from this specific origin
   origin: config.frontendUrl,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Allowed HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-  credentials: true, // IMPORTANT: Allow cookies (for the refreshToken)
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
 
 // --- Middleware Setup ---
@@ -61,20 +59,11 @@ app.use("/api/doctor", doctorRoutes);
 app.use("/api/service-types", serviceTypeRoutes);
 app.use("/api/receptionists", receptionistRoutes);
 app.use("/api/initial-form", initialFormRoutes);
-app.use("/api/dashboard", dashboardRoutes); // Add this line
+app.use("/api/dashboard", dashboardRoutes);
 
 // --- Error Handling Middleware ---
-// This should generally be placed AFTER your routes
 app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
   console.error("Error occurred:", err.message); // Log the error message
-  // console.error(err.stack); // Log the full stack trace for debugging if needed
-
-  // You could check for specific error types here if needed
-  // e.g., if (err instanceof SpecificAppError) { ... }
-
-  // Generic fallback
-  // Note: CORS errors might not reach here if rejected earlier by the cors middleware itself
-  // depending on the exact failure. The browser console is often the best place to see CORS issues.
   res.status(500).json({ message: "Internal Server Error" });
 });
 

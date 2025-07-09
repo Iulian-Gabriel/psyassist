@@ -97,7 +97,6 @@ function generateAccessToken(userId: number): string {
     throw new Error("Access token secret is not configured");
   }
   return jwt.sign({ userId, role: "user" }, config.accessTokenSecret, {
-    // Assuming a default role or you can fetch it
     expiresIn: `${config.accessTokenExpiryMinutes}m`,
   });
 }
