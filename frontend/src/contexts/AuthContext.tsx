@@ -137,19 +137,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     // First, clear state and localStorage immediately
     setAccessToken(null);
     setUser(null);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-
-    // Navigate before making the API call
-    navigate("/auth", { replace: true });
+    localStorage.clear(); // Clear all localStorage instead of individual items
+    sessionStorage.clear(); // Also clear sessionStorage to be thorough
 
     // Then make the API call to cleanup server-side
     try {
       await logoutUser();
     } catch (error) {
       console.error("Logout API Error:", error);
-      // Don't rethrow - we've already cleared client state
     }
+
+    // Navigate after cleanup
+    navigate("/auth", { replace: true });
   }, [navigate]); // Dependency: navigate
 
   return (

@@ -12,34 +12,37 @@ export default function Dashboard() {
       return;
     }
 
-    // Log the user object to the browser console to inspect its structure
-    console.log("User object for redirection:", user);
+    if (!user || !user.roles || user.roles.length === 0) {
+      navigate("/auth", { replace: true });
+      return;
+    }
 
-    if (user?.roles) {
+    // Use a small timeout to ensure state is fully cleared
+    const timeoutId = setTimeout(() => {
       // Redirect to role-specific dashboard
       if (user.roles.includes("admin")) {
-        navigate("/admin");
+        navigate("/admin", { replace: true });
       } else if (user.roles.includes("doctor")) {
-        navigate("/doctor");
+        navigate("/doctor", { replace: true });
       } else if (user.roles.includes("receptionist")) {
-        navigate("/receptionist");
+        navigate("/receptionist", { replace: true });
       } else if (user.roles.includes("patient")) {
-        navigate("/patient");
+        navigate("/patient", { replace: true });
       } else {
-        // This case handles users that are logged in but have no redirectable role.
         console.warn("User has no matching role for redirection.", user.roles);
+        navigate("/auth", { replace: true });
       }
-    } else if (!user) {
-      // If there's no user after loading, redirect to the login page.
-      // You might need to adjust the path to "/login" or your auth page.
-      navigate("/auth");
-    }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [user, isLoading, navigate]);
 
-  // Show a more accurate loading message
   return (
     <div className="container mx-auto p-4 flex justify-center items-center min-h-[60vh]">
-      <p>Loading your dashboard...</p>
+      <div className="flex items-center space-x-2">
+        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p>Loading your dashboard...</p>
+      </div>
     </div>
   );
 }
