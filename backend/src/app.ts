@@ -25,11 +25,38 @@ import dashboardRoutes from "./routes/api/dashboardRoutes";
 
 const app = express();
 
-// --- CORS Configuration (Simplified) ---
-const corsOptions: cors.CorsOptions = {
-  origin: config.frontendUrl,
+// --- CORS Configuration ---
+const corsOptions: cors.CorsOptions = { // Add type annotation back for clarity
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like curl, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow localhost:5173 for local frontend development
+    if (origin.startsWith("http://localhost:5173")) {
+      return callback(null, true);
+    }
+
+    // Allow any Codespaces frontend preview URL on port 5173
+    // Example: https://<codespace-name>-5173.app.github.dev
+    if (/^https:\/\/[\w-]+-5173\.app\.github\.dev$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Optionally allow your configured frontendUrl (e.g., for production/staging)
+    if (origin === config.frontendUrl) {
+      return callback(null, true);
+    }
+
+    // Otherwise, block
+    callback(new Error(`Not allowed by CORS: ${origin}`)); // More informative error
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
   credentials: true,
 };
 

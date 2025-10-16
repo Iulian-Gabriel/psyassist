@@ -2,7 +2,7 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 
 // 1. Get Base URL from environment variable or default
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api"; // Adjust port if needed
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL_FALLBACK;
 
 const api = axios.create({
   baseURL: API_URL,
