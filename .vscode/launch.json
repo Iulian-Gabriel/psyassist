@@ -1,16 +1,40 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
-      "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}\\backend\\src\\controllers\\feedbackController.ts",
-      "outFiles": ["${workspaceFolder}/**/*.js"]
+      "name": "Backend: Dev Server",
+      "runtimeArgs": ["-r", "ts-node/register"],
+      "args": ["src/server.ts"],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "TS_NODE_FILES": "true"
+      },
+      // "protocol": "inspector", // REMOVE THIS LINE
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "restart": true
+    },
+    {
+      "type": "node", // CHANGE THIS TO "node"
+      "request": "launch",
+      "name": "Frontend: Dev Server",
+      // Use `runtimeExecutable` to specify the `npm` or `npx` command,
+      // and `runtimeArgs` to pass arguments to it.
+      // Or, alternatively, `program` if you want to run the Vite executable directly.
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"], // This translates to `npm run dev`
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch All: Backend & Frontend",
+      "configurations": ["Backend: Dev Server", "Frontend: Dev Server"]
     }
   ]
 }
