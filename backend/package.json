@@ -3,9 +3,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn src/server.ts",
+    "seed:db": "npx tsx src/scripts/seed.ts",
     "init:db": "npx tsx src/utils/initDB.ts",
     "create:admin": "npx tsx src/scripts/createAdmin.ts",
-    "setup:db": "npm run init:db && npm run create:admin"
+    "setup:db": "npm run init:db && npm run create:admin && npm run seed:db"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
