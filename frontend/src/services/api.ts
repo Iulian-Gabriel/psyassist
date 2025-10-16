@@ -1,15 +1,34 @@
 // frontend/src/services/api.ts
 import axios, { InternalAxiosRequestConfig } from "axios";
 
-// 1. Get Base URL from environment variable or default
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL_FALLBACK;
+// Determine the API URL
+const getApiUrl = (): string => {
+  if (typeof window === "undefined") {
+    return "http://localhost:4000/api";
+  }
+
+  const hostname = window.location.hostname;
+  
+  // Codespaces environment
+  if (hostname.includes("app.github.dev")) {
+    const backendUrl = `https://${hostname.replace(/-5173/, "-4000")}/api`;
+    console.log("🔗 Codespaces API URL:", backendUrl);
+    return backendUrl;
+  }
+
+  // Local development
+  const localUrl = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+  console.log("🔗 Local API URL:", localUrl);
+  return localUrl;
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  // 2. IMPORTANT: Send cookies (like the refreshToken) with requests
   withCredentials: true,
 });
 
