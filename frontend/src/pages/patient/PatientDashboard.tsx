@@ -169,8 +169,11 @@ export default function PatientDashboard() {
   ]);
 
   useEffect(() => {
+    let isSubscribed = true;
+
     const loadPatientDashboard = async () => {
       try {
+        if (!isSubscribed) return;
         setLoading(true);
         setError(null);
 
@@ -429,14 +432,23 @@ export default function PatientDashboard() {
           averageWellnessScore: calculatedWellnessScore,
         });
       } catch (err) {
-        console.error("Error loading patient dashboard:", err);
-        setError("Failed to load dashboard data. Please try again.");
+        if (isSubscribed) {
+          console.error("Error loading patient dashboard:", err);
+          setError("Failed to load dashboard data. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+        }
       }
     };
 
     loadPatientDashboard();
+
+    // Cleanup function
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   const formatDateTime = (dateString: string) => {

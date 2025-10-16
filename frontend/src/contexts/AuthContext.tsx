@@ -134,17 +134,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   ); // Dependency: navigate
 
   const handleLogout = useCallback(async () => {
+    // First, clear state and localStorage immediately
+    setAccessToken(null);
+    setUser(null);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+
+    // Navigate before making the API call
+    navigate("/auth", { replace: true });
+
+    // Then make the API call to cleanup server-side
     try {
       await logoutUser();
     } catch (error) {
-      // Log but don't rethrow - we want to proceed with cleanup regardless
-      console.error("Context Logout Error:", error);
-      // Could add a toast notification here for better UX
-    } finally {
-      // Always clear state and redirect
-      setAccessToken(null);
-      setUser(null);
-      navigate("/auth");
+      console.error("Logout API Error:", error);
+      // Don't rethrow - we've already cleared client state
     }
   }, [navigate]); // Dependency: navigate
 

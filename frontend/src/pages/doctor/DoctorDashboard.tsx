@@ -168,8 +168,11 @@ export default function DoctorDashboard() {
   const [patientFeedbackRating, setPatientFeedbackRating] = useState(0);
 
   useEffect(() => {
+    let isSubscribed = true;
+
     const loadDashboardData = async () => {
       try {
+        if (!isSubscribed) return;
         setLoading(true);
         setError(null);
 
@@ -294,14 +297,22 @@ export default function DoctorDashboard() {
           setPatientFeedbackRating(0);
         }
       } catch (err) {
-        console.error("Error loading doctor dashboard data:", err);
-        setError("Failed to load dashboard data. Please try again.");
+        if (isSubscribed) {
+          console.error("Error loading doctor dashboard:", err);
+          setError("Failed to load dashboard data. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+        }
       }
     };
 
     loadDashboardData();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   // UPDATED: Prepare chart data with pendingTests

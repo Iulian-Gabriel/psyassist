@@ -193,59 +193,66 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
+    let isSubscribed = true;
+
     const loadAdminDashboard = async () => {
       try {
+        if (!isSubscribed) return;
         setLoading(true);
         setError(null);
 
         // 1. Get admin dashboard stats
         const statsResponse = await api.get("/dashboard/admin/stats");
+        if (!isSubscribed) return;
         setStats(statsResponse.data);
 
         // 2. Get user growth data
-        const userGrowthResponse = await api.get(
-          "/dashboard/admin/user-growth"
-        );
+        const userGrowthResponse = await api.get("/dashboard/admin/user-growth");
+        if (!isSubscribed) return;
         setUserGrowthData(userGrowthResponse.data);
 
         // 3. Get system metrics
-        const metricsResponse = await api.get(
-          "/dashboard/admin/system-metrics"
-        );
+        const metricsResponse = await api.get("/dashboard/admin/system-metrics");
+        if (!isSubscribed) return;
         setSystemMetrics(metricsResponse.data);
 
         // 4. Get recent activity
         const activityResponse = await api.get("/dashboard/recent-activity", {
           params: { limit: 10 },
         });
+        if (!isSubscribed) return;
         setRecentActivity(activityResponse.data);
 
-        // 5. For comparison purposes, we'll calculate previous stats
-        // You might want to add a specific API endpoint for this
+        // Calculate previous stats
         const currentMonth = new Date().getMonth();
         const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
 
-        // For now, we'll estimate previous stats (you can enhance this with a dedicated endpoint)
+        if (!isSubscribed) return;
         setPreviousStats({
           totalUsers: Math.max(0, statsResponse.data.totalUsers - 5),
           totalPatients: Math.max(0, statsResponse.data.totalPatients - 3),
-          completedTests: Math.max(
-            0,
-            statsResponse.data.completedTestsThisMonth - 2
-          ),
+          completedTests: Math.max(0, statsResponse.data.completedTestsThisMonth - 2),
         });
+
       } catch (err: any) {
+        if (!isSubscribed) return;
         console.error("Error loading admin dashboard:", err);
         setError(
           err.response?.data?.message ||
-            "Failed to load dashboard data. Please try again."
+          "Failed to load dashboard data. Please try again."
         );
       } finally {
+        if (!isSubscribed) return;
         setLoading(false);
       }
     };
 
     loadAdminDashboard();
+
+    // Cleanup function
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   // Calculate percentage changes

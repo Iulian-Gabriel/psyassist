@@ -170,8 +170,11 @@ export default function ReceptionistDashboard() {
   const [previousWeekPatients, setPreviousWeekPatients] = useState(0);
 
   useEffect(() => {
+    let isSubscribed = true;
+
     const loadDashboardData = async () => {
       try {
+        if (!isSubscribed) return;
         setLoading(true);
         setError(null);
 
@@ -341,14 +344,22 @@ export default function ReceptionistDashboard() {
           ]);
         }
       } catch (err) {
-        console.error("Error loading receptionist dashboard data:", err);
-        setError("Failed to load dashboard data. Please try again.");
+        if (isSubscribed) {
+          console.error("Error loading receptionist dashboard:", err);
+          setError("Failed to load dashboard data. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          setLoading(false);
+        }
       }
     };
 
     loadDashboardData();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   // Calculate percentage changes
